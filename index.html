@@ -1092,7 +1092,7 @@ function renderTable() {
   }
 
   body.innerHTML = list.map(e => {
-    if (editingId === e.id) return buildInlineEdit(e);
+    if (editingId !== null && String(editingId) === String(e.id)) return buildInlineEdit(e);
     const bal = balMap[e.id];
     const balStr = e.status === 'confirmed' && bal != null ? fmtNum(bal) : '―';
     const balCls = e.status === 'confirmed' && bal != null ? (bal >= 0 ? 'pos-val' : 'neg-val') : 'muted';
@@ -1120,8 +1120,8 @@ function renderTable() {
       <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
       <td>
         <div class="edit-actions">
-          <button class="btn btn-edit btn-xs" onclick="startEdit(${e.id})">編集</button>
-          <button class="btn btn-danger btn-xs" onclick="confirmDelete(${e.id})">削除</button>
+          <button class="btn btn-edit btn-xs" onclick="startInlineEdit('${e.id}')">編集</button>
+          <button class="btn btn-danger btn-xs" onclick="confirmDelete('${e.id}')">削除</button>
         </div>
       </td>
     </tr>`;
@@ -1144,11 +1144,17 @@ function buildInlineEdit(e) {
     <td><input type="text" id="ie_note" value="${e.note||''}"></td>
     <td>
       <div class="edit-actions">
-        <button class="btn btn-primary btn-xs" onclick="saveInlineEdit(${e.id})">保存</button>
+        <button class="btn btn-primary btn-xs" onclick="saveInlineEdit('${e.id}')">保存</button>
         <button class="btn btn-ghost btn-xs" onclick="cancelEdit()">戻る</button>
       </div>
     </td>
   </tr>`;
+}
+
+// インライン編集開始
+function startInlineEdit(id) {
+  editingId = id;
+  renderTable();
 }
 
 // ===== ENTRY FORM =====
@@ -1288,7 +1294,8 @@ function startEdit(id) {
 }
 
 async function saveInlineEdit(id) {
-  const idx = entries.findIndex(e => e.id === id);
+  const idx = entries.findIndex(e => String(e.id) === String(id));
+  if (idx === -1) { showToast('対象データが見つかりません'); return; }
   const orig = entries[idx];
   const updated = {
     id,
