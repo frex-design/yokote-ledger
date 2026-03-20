@@ -244,6 +244,8 @@
   /* toast */
   #toastMsg { position:fixed; bottom:24px; right:24px; background:#1a2236; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
 
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   @media print {
     .header, .sidebar, .chart-card, #formCard, .filter-bar, .btn, #toastMsg { display:none !important; }
     .main { display:block; height:auto; }
@@ -702,21 +704,43 @@
 
 <script>
 // ===== CONSTANTS =====
-const ACCOUNT_ID       = 'akita_yokote';
+const ACCOUNT_ID        = 'akita_yokote';
 const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
 const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
 const INIT_DATE         = '2026-03-01'; // この日より後のエントリを計上
-const STORAGE_KEY       = 'fd_yokote_ledger_v1';
-const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
-const ADJ_KEY_CASH      = 'fd_yokote_adj_cash_v1';
-const AUTH_PW      = 'frex2022';
+const AUTH_PW           = 'frex2022';
+
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://grhqmuqzpjwiuyexasmm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyaHFtdXF6cGp3aXV5ZXhhc21tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5ODQ4MzYsImV4cCI6MjA4OTU2MDgzNn0.USghV32TAEgx2fR62KHN3JI5YHTetsaTU5NgFWTScRo';
+const TABLE = 'yokote_ledger';
+const META_TABLE = 'yokote_meta';
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('Supabase error:', err);
+    return null;
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
 
 // ===== STATE =====
 let entries = [];
 let balAdjBank = null; // { date, actual } 口座残高調整
 let balAdjCash = null; // { date, actual } 現金残高調整
 let editingId = null;
-let nextId  = 1;
 let filterYM = '';  // 'YYYY-MM' or 'YYYY' or ''
 let filterYMMode = 'month'; // 'month' | 'year' | 'all'
 let miniMonth = '';
@@ -728,18 +752,123 @@ let csvSelectedMonth = '';
 let csvSelectedYear  = '';
 let miniChart = null;
 
-// ===== STORAGE =====
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, nextId })); }
-function load() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) { const d = JSON.parse(raw); entries = d.entries || []; nextId = d.nextId || 1; }
-  const adjB = localStorage.getItem(ADJ_KEY_BANK);
-  if (adjB) balAdjBank = JSON.parse(adjB);
-  const adjC = localStorage.getItem(ADJ_KEY_CASH);
-  if (adjC) balAdjCash = JSON.parse(adjC);
+// ===== STORAGE (Supabase) =====
+
+// エントリ1件をSupabaseに保存（新規INSERT）
+async function saveEntry(e) {
+  const row = {
+    entry_id:    String(e.id),
+    date:        e.date,
+    type:        e.type,
+    status:      e.status || 'confirmed',
+    tx_type:     e.txType || 'bank',
+    partner:     e.partner || null,
+    description: e.desc || null,
+    category:    e.category || null,
+    amount:      e.amount,
+    note:        e.note || null
+  };
+  await sbFetch(TABLE, {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: JSON.stringify(row)
+  });
 }
-function saveAdjBank() { localStorage.setItem(ADJ_KEY_BANK, JSON.stringify(balAdjBank)); }
-function saveAdjCash() { localStorage.setItem(ADJ_KEY_CASH, JSON.stringify(balAdjCash)); }
+
+// エントリ1件を更新（UPDATE）
+async function updateEntry(e) {
+  const row = {
+    date:        e.date,
+    type:        e.type,
+    status:      e.status || 'confirmed',
+    tx_type:     e.txType || 'bank',
+    partner:     e.partner || null,
+    description: e.desc || null,
+    category:    e.category || null,
+    amount:      e.amount,
+    note:        e.note || null
+  };
+  await sbFetch(TABLE + '?entry_id=eq.' + encodeURIComponent(String(e.id)), {
+    method: 'PATCH',
+    prefer: 'return=minimal',
+    body: JSON.stringify(row)
+  });
+}
+
+// エントリ1件を削除（DELETE）
+async function deleteEntryDb(id) {
+  await sbFetch(TABLE + '?entry_id=eq.' + encodeURIComponent(String(id)), {
+    method: 'DELETE'
+  });
+}
+
+// メタデータ（残高調整）を保存
+async function saveMeta(key, value) {
+  const row = { meta_key: key, meta_value: JSON.stringify(value) };
+  await sbFetch(META_TABLE + '?meta_key=eq.' + encodeURIComponent(key), {
+    method: 'DELETE'
+  });
+  await sbFetch(META_TABLE, {
+    method: 'POST',
+    prefer: 'return=minimal',
+    body: JSON.stringify(row)
+  });
+}
+
+// 全データを読み込む
+async function load() {
+  showLoadingOverlay(true);
+  try {
+    // エントリ取得
+    const rows = await sbFetch(TABLE + '?order=date.asc,entry_id.asc');
+    if (rows) {
+      entries = rows.map(r => ({
+        id:       r.entry_id,
+        date:     r.date,
+        type:     r.type,
+        status:   r.status,
+        txType:   r.tx_type,
+        partner:  r.partner || '',
+        desc:     r.description || '',
+        category: r.category || '',
+        amount:   r.amount,
+        note:     r.note || ''
+      }));
+    }
+    // メタデータ取得
+    const metas = await sbFetch(META_TABLE);
+    if (metas) {
+      metas.forEach(m => {
+        if (m.meta_key === 'adj_bank') balAdjBank = JSON.parse(m.meta_value);
+        if (m.meta_key === 'adj_cash') balAdjCash = JSON.parse(m.meta_value);
+      });
+    }
+  } catch(err) {
+    console.error('load error:', err);
+    showToast('データ読込に失敗しました');
+  }
+  showLoadingOverlay(false);
+}
+
+function showLoadingOverlay(show) {
+  let el = document.getElementById('loadingOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadingOverlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.8);z-index:500;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2);gap:10px;';
+    el.innerHTML = '<div style="width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div> 読み込み中…';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// 残高調整保存
+async function saveAdjBank() {
+  await saveMeta('adj_bank', balAdjBank);
+}
+async function saveAdjCash() {
+  await saveMeta('adj_cash', balAdjCash);
+}
 
 // ===== AUTH =====
 function doLogin() {
@@ -768,7 +897,12 @@ function fmtNum(n) {
   if (n == null) return '―';
   return (n < 0 ? '-' : '') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
 }
-function uid() { return nextId++; }
+function uid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
 
 // ===== BALANCE =====
 function getBalanceAt(date) {
@@ -793,8 +927,8 @@ function getCashBalance() {
 }
 
 // ===== INIT =====
-function init() {
-  load();
+async function init() {
+  await load();
   const today = new Date();
   document.getElementById('todayLabel').textContent =
     today.toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'short'});
@@ -1051,12 +1185,11 @@ function switchFormMode(mode) {
   cancelEdit();
 }
 
-function submitEntry(mode) {
+async function submitEntry(mode) {
   const date = document.getElementById('entryDate').value;
   if (!date) { showToast('日付を入力してください'); return; }
 
   if (mode === 'bank') {
-    // 現金 入出金（現金残高が増減する）
     const type   = document.getElementById('entryType').value;
     const amount = parseInt(document.getElementById('entryAmount').value) || 0;
     const partner= document.getElementById('entryPartner').value.trim();
@@ -1064,17 +1197,20 @@ function submitEntry(mode) {
     const cat    = document.getElementById('entryCategory').value;
     const note   = document.getElementById('entryNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    // 現金残高を増減
     const delta = type === 'in' ? amount : -amount;
     const newCash = getCashBalance() + delta;
     balAdjCash = { date, actual: newCash };
-    saveAdjCash();
+    await saveAdjCash();
     if (editingId !== null) {
       const idx = entries.findIndex(e => e.id === editingId);
-      entries[idx] = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
+      const updated = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
+      entries[idx] = updated;
+      await updateEntry(updated);
       cancelEdit();
     } else {
-      entries.push({ id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' });
+      const newE = { id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
+      entries.push(newE);
+      await saveEntry(newE);
     }
     document.getElementById('entryAmount').value = '';
     document.getElementById('entryPartner').value = '';
@@ -1083,18 +1219,18 @@ function submitEntry(mode) {
     document.getElementById('entryCategory').value = '';
 
   } else if (mode === 'cash') {
-    // 現金 出金
     const amount = parseInt(document.getElementById('cashAmount').value) || 0;
     const partner= document.getElementById('cashPartner').value.trim();
     const desc   = document.getElementById('cashDesc').value.trim();
     const cat    = document.getElementById('cashCategory').value;
     const note   = document.getElementById('cashNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' });
-    // 現金残高を減算
+    const newE = { id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' };
+    entries.push(newE);
+    await saveEntry(newE);
     const newCash = getCashBalance() - amount;
     balAdjCash = { date, actual: newCash };
-    saveAdjCash();
+    await saveAdjCash();
     document.getElementById('cashAmount').value = '';
     document.getElementById('cashPartner').value = '';
     document.getElementById('cashDesc').value = '';
@@ -1102,30 +1238,29 @@ function submitEntry(mode) {
     document.getElementById('cashCategory').value = '';
 
   } else if (mode === 'withdraw') {
-    // 現金引出：口座から出金 + 現金に加算
     const amount = parseInt(document.getElementById('withdrawAmount').value) || 0;
     const desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
     if (amount <= 0) { showToast('引出金額を入力してください'); return; }
-    // 口座から出金エントリ
-    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' });
-    // 現金残高を加算
+    const newE = { id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' };
+    entries.push(newE);
+    await saveEntry(newE);
     const newCash = getCashBalance() + amount;
     balAdjCash = { date, actual: newCash };
-    saveAdjCash();
+    await saveAdjCash();
     document.getElementById('withdrawAmount').value = '';
     document.getElementById('withdrawDesc').value = '';
 
   } else if (mode === 'transfer') {
-    // 資金移動（本社→横手）：口座に入金
     const amount = parseInt(document.getElementById('transferAmount').value) || 0;
     const desc   = document.getElementById('transferDesc').value.trim() || '本社からの資金移動';
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' });
+    const newE = { id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' };
+    entries.push(newE);
+    await saveEntry(newE);
     document.getElementById('transferAmount').value = '';
     document.getElementById('transferDesc').value = '';
   }
 
-  save();
   renderAll();
   showToast('登録しました');
 }
@@ -1149,13 +1284,14 @@ function startEdit(id) {
   renderTable();
 }
 
-function saveInlineEdit(id) {
+async function saveInlineEdit(id) {
   const idx = entries.findIndex(e => e.id === id);
-  entries[idx] = {
+  const orig = entries[idx];
+  const updated = {
     id,
     date:     document.getElementById('ie_date').value,
     status:   'confirmed',
-    txType:   e.txType || 'bank',
+    txType:   orig.txType || 'bank',
     partner:  document.getElementById('ie_partner').value.trim(),
     desc:     document.getElementById('ie_desc').value.trim(),
     category: document.getElementById('ie_category').value,
@@ -1163,8 +1299,11 @@ function saveInlineEdit(id) {
     amount:   parseInt(document.getElementById('ie_amount').value) || 0,
     note:     document.getElementById('ie_note').value.trim(),
   };
+  entries[idx] = updated;
   editingId = null;
-  save(); renderAll(); showToast('更新しました');
+  await updateEntry(updated);
+  renderAll();
+  showToast('更新しました');
 }
 
 function cancelEdit() {
@@ -1184,29 +1323,31 @@ function confirmDelete(id) {
   const row = document.getElementById('row_' + id);
   const ops = row.querySelector('.edit-actions');
   ops.innerHTML = `<span class="delete-confirm-text">本当に削除？</span>
-    <button class="btn btn-danger btn-xs" onclick="deleteEntry(${id})">はい</button>
+    <button class="btn btn-danger btn-xs" onclick="deleteEntry('${id}')">はい</button>
     <button class="btn btn-ghost btn-xs" onclick="renderTable()">いいえ</button>`;
 }
-function deleteEntry(id) {
+async function deleteEntry(id) {
   const target = entries.find(e => e.id === id);
   if (target && target.txType === 'withdraw') {
     const newCash = getCashBalance() - target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
-    saveAdjCash();
+    await saveAdjCash();
   }
   if (target && (target.txType === 'cash' || (target.txType === 'cash_io' && target.type === 'out'))) {
     const newCash = getCashBalance() + target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
-    saveAdjCash();
+    await saveAdjCash();
   }
   if (target && target.txType === 'cash_io' && target.type === 'in') {
     const newCash = getCashBalance() - target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
-    saveAdjCash();
+    await saveAdjCash();
   }
   entries = entries.filter(e => e.id !== id);
   if (editingId === id) cancelEdit();
-  save(); renderAll(); showToast('削除しました');
+  await deleteEntryDb(id);
+  renderAll();
+  showToast('削除しました');
 }
 
 // ===== MONTH FILTER =====
@@ -1420,15 +1561,15 @@ function toggleBalanceAdjust(type) {
   }
   f.style.display = 'block';
 }
-function saveBalanceAdjust(type) {
+async function saveBalanceAdjust(type) {
   const val = parseFloat(document.getElementById('adjInput_' + type).value.replace(/,/g,''));
   if (isNaN(val)) { alert('正しい金額を入力してください'); return; }
   if (type === 'bank') {
     balAdjBank = { date: getTodayStr(), actual: val };
-    saveAdjBank();
+    await saveAdjBank();
   } else {
     balAdjCash = { date: getTodayStr(), actual: val };
-    saveAdjCash();
+    await saveAdjCash();
   }
   document.getElementById('balanceAdjustForm_' + type).style.display = 'none';
   renderAll(); showToast('実残高を保存しました');
@@ -1644,10 +1785,17 @@ function parseCsv(text) {
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.note||''}</td>
   </tr>`).join('') + (valid.length>30?`<tr><td colspan="8" style="padding:8px;text-align:center;color:var(--text3);font-size:12px;">…他${valid.length-30}件</td></tr>`:'');
 }
-function confirmCsvImport() {
+async function confirmCsvImport() {
   if (!csvParsed.length) { alert('取込可能なデータがありません'); return; }
-  csvParsed.forEach(r => entries.push({ id: uid(), ...r }));
-  save(); closeCsvImport(); renderAll();
+  showLoadingOverlay(true);
+  for (const r of csvParsed) {
+    const newE = { id: uid(), ...r };
+    entries.push(newE);
+    await saveEntry(newE);
+  }
+  showLoadingOverlay(false);
+  closeCsvImport();
+  renderAll();
   showToast(`${csvParsed.length}件を取込みました`);
   csvParsed = [];
 }
