@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>入出金帳簿 | 秋田銀行（横手）| フレックスデザイン</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg:      #f0f4f8;
+    --bg2:     #ffffff;
+    --bg3:     #f5f7fa;
+    --bg4:     #eaeff5;
+    --border:  #dde3ec;
+    --border2: #c8d2e0;
+    --text:    #1a2236;
+    --text2:   #4a5568;
+    --text3:   #8a97ab;
+
+    /* Claude / brand accent  ── オレンジ系 */
+    --accent:  #e67e22;
+    --accent2: #cf6d17;
+    --accent-subtle: rgba(230,126,34,0.10);
+    --accent-border: rgba(230,126,34,0.28);
+
+    --green:  #16a34a;
+    --green2: #166534;
+    --red:    #dc2626;
+    --red2:   #b91c1c;
+    --teal:   #0d9488;
+    --mono:   'JetBrains Mono', monospace;
+    --sans:   'Noto Sans JP', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; min-height:100vh; }
+
+  /* ===== HEADER ===== */
+  .header {
+    background:var(--bg2); border-bottom:1px solid var(--border);
+    padding:0 24px; height:56px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  }
+  .header-left { display:flex; align-items:center; gap:16px; }
+  .logo {
+    font-size:13px; font-weight:700; letter-spacing:0.04em; color:var(--accent);
+    display:flex; align-items:center; gap:6px;
+  }
+  .logo-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:var(--accent); display:inline-block;
+  }
+  .header-title { font-size:13px; color:var(--text2); border-left:1px solid var(--border2); padding-left:16px; white-space:nowrap; }
+  .header-right { display:flex; align-items:center; gap:12px; }
+  .today-badge { font-family:var(--mono); font-size:12px; color:var(--text2); background:var(--bg3); border:1px solid var(--border); padding:4px 10px; border-radius:4px; }
+
+  /* ===== LAYOUT ===== */
+  .main { display:flex; height:calc(100vh - 56px); overflow:hidden; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar { width:260px; background:var(--bg2); border-right:1px solid var(--border); overflow-y:auto; flex-shrink:0; }
+  .sidebar-section { padding:14px 16px; border-bottom:1px solid var(--border); }
+  .sidebar-section-title { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
+
+  .balance-hero {
+    background:linear-gradient(135deg, rgba(230,126,34,0.12), rgba(230,126,34,0.04));
+    border:1px solid var(--accent-border); border-radius:8px; padding:14px;
+  }
+  .balance-hero-label { font-size:11px; color:var(--accent); margin-bottom:4px; font-weight:500; }
+  .balance-hero-amount { font-family:var(--mono); font-size:20px; font-weight:600; color:var(--text); }
+  .balance-hero-sub { font-size:11px; color:var(--text3); margin-top:3px; }
+
+  .kpi-mini { margin-top:10px; display:grid; gap:6px; }
+  .kpi-mini-row { display:flex; justify-content:space-between; align-items:center; font-size:12px; }
+  .kpi-mini-label { color:var(--text3); }
+  .kpi-mini-val { font-family:var(--mono); font-weight:600; }
+  .kpi-mini-val.in  { color:var(--green); }
+  .kpi-mini-val.out { color:var(--red); }
+
+  .alert-box { background:rgba(220,38,38,0.07); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:10px 12px; margin-bottom:6px; }
+  .alert-box.warn { background:rgba(230,126,34,0.07); border-color:rgba(230,126,34,0.35); }
+  .alert-title { font-size:11px; font-weight:700; margin-bottom:2px; }
+  .alert-box .alert-title { color:var(--red); }
+  .alert-box.warn .alert-title { color:var(--accent); }
+  .alert-msg { font-size:11px; color:var(--text2); }
+
+  /* ===== CONTENT ===== */
+  .content { flex:1; overflow-y:auto; padding:20px 24px; }
+
+  /* ===== SUMMARY CARDS ===== */
+  .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+  .summary-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.05); position:relative; overflow:hidden; }
+  .summary-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .summary-card.s-balance::before { background:linear-gradient(90deg, var(--accent), #f0a054); }
+  .summary-card.s-in::before      { background:var(--green); }
+  .summary-card.s-out::before     { background:var(--red); }
+  .summary-card.s-count::before   { background:var(--teal); }
+  .summary-card-label { font-size:11px; color:var(--text3); margin-bottom:6px; letter-spacing:0.04em; }
+  .summary-card-value { font-family:var(--mono); font-size:18px; font-weight:600; }
+  .summary-card-sub { font-size:11px; color:var(--text3); margin-top:4px; }
+
+  /* ===== CHART CARD ===== */
+  .chart-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+  .chart-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .chart-title { font-size:13px; font-weight:500; }
+
+  /* ===== FORM ===== */
+  .form-grid { display:grid; grid-template-columns:160px 100px 1fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px; }
+  .form-group { display:flex; flex-direction:column; gap:4px; }
+  .form-label { font-size:11px; color:var(--text3); font-weight:500; }
+  .form-input, .form-select {
+    background:var(--bg3); border:1px solid var(--border); color:var(--text);
+    font-family:var(--sans); font-size:13px; padding:7px 10px;
+    border-radius:5px; outline:none; transition:border-color 0.15s; width:100%;
+  }
+  .form-input:focus, .form-select:focus { border-color:var(--accent); background:#fff; }
+  .form-input::placeholder { color:var(--text3); }
+  .form-select option { background:#fff; }
+
+  /* ===== BUTTONS ===== */
+  .btn { padding:8px 16px; border-radius:5px; border:none; font-family:var(--sans); font-size:13px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:var(--accent2); }
+  .btn-ghost { background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--bg4); color:var(--text); }
+  .btn-danger { background:rgba(220,38,38,0.08); color:var(--red); border:1px solid rgba(220,38,38,0.25); }
+  .btn-danger:hover { background:rgba(220,38,38,0.16); }
+  .btn-edit { background:var(--accent-subtle); color:var(--accent); border:1px solid var(--accent-border); }
+  .btn-edit:hover { background:rgba(230,126,34,0.18); }
+  .btn-success { background:var(--green); color:#fff; }
+  .btn-success:hover { background:var(--green2); }
+  .btn-teal { background:var(--teal); color:#fff; }
+  .btn-teal:hover { background:#0a7a70; }
+
+  /* ===== MODE TABS ===== */
+  .mode-tabs { display:flex; gap:2px; margin-bottom:14px; border-bottom:2px solid var(--border); padding-bottom:0; }
+  .mode-tab { padding:8px 16px; border:none; background:transparent; font-family:var(--sans); font-size:13px; color:var(--text3); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; white-space:nowrap; }
+  .mode-tab:hover { color:var(--text2); }
+  .mode-tab.active-bank    { color:var(--accent); border-bottom-color:var(--accent); font-weight:500; }
+  .mode-tab.active-cash    { color:var(--green);  border-bottom-color:var(--green);  font-weight:500; }
+  .mode-tab.active-withdraw{ color:var(--teal);   border-bottom-color:var(--teal);   font-weight:500; }
+  .mode-tab.active-transfer{ color:#7c3aed;       border-bottom-color:#7c3aed;       font-weight:500; }
+  .form-panel { display:none; }
+  .form-panel.active { display:block; }
+
+  /* ===== 取引種別バッジ ===== */
+  .badge-bank     { background:rgba(230,126,34,0.12); color:var(--accent); }
+  .badge-cash-out { background:rgba(22,163,74,0.12);  color:var(--green); }
+  .badge-withdraw { background:rgba(13,148,136,0.12); color:var(--teal); }
+  .badge-transfer { background:rgba(124,58,237,0.10); color:#7c3aed; }
+  .row-cash td   { background:rgba(22,163,74,0.025); }
+  .row-withdraw td{ background:rgba(13,148,136,0.025); }
+  .row-transfer td{ background:rgba(124,58,237,0.025); }
+  .btn-sm { padding:4px 10px; font-size:12px; }
+  .btn-xs { padding:3px 8px; font-size:11px; }
+
+  /* ===== TABLE ===== */
+  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .section-title { font-size:13px; font-weight:500; color:var(--text2); }
+  .filter-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .filter-bar select, .filter-bar input { background:var(--bg2); border:1px solid var(--border); color:var(--text); font-family:var(--sans); font-size:13px; padding:6px 10px; border-radius:5px; outline:none; }
+  .filter-bar select:focus, .filter-bar input:focus { border-color:var(--accent); }
+
+  .table-wrap { overflow-x:auto; border-radius:8px; border:1px solid var(--border); }
+  table { width:100%; border-collapse:collapse; }
+  thead { background:var(--bg3); }
+  th { padding:10px 12px; text-align:left; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text3); border-bottom:1px solid var(--border); white-space:nowrap; }
+  td { padding:9px 12px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(230,126,34,0.025); }
+  .mono { font-family:var(--mono); font-size:13px; }
+  .text-right { text-align:right; }
+  .text-center { text-align:center; }
+  .pos-val { color:var(--green); }
+  .neg-val { color:var(--red); }
+  .muted { color:var(--text3); }
+
+  .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:500; }
+  .badge-in   { background:rgba(22,163,74,0.12);  color:var(--green); }
+  .badge-out  { background:rgba(220,38,38,0.10);  color:var(--red); }
+  .badge-plan { background:rgba(230,126,34,0.10); color:var(--accent); }
+  .badge-confirmed { background:rgba(22,163,74,0.12); color:var(--green); }
+
+  /* inline edit */
+  .inline-edit-row td { padding:5px 6px; background:var(--accent-subtle); }
+  .inline-edit-row input, .inline-edit-row select {
+    width:100%; background:#fff; border:1px solid var(--border2); color:var(--text);
+    font-family:var(--sans); font-size:12px; padding:4px 6px; border-radius:4px; outline:none;
+  }
+  .inline-edit-row input:focus, .inline-edit-row select:focus { border-color:var(--accent); }
+  .row-editing td { background:var(--accent-subtle) !important; outline:2px solid var(--accent); outline-offset:-1px; }
+  .edit-actions { display:flex; gap:4px; }
+
+  /* ===== NAV ===== */
+  .filter-nav-btn { width:28px; height:32px; border:none; background:transparent; color:var(--text3); font-size:18px; cursor:pointer; transition:color 0.15s; display:flex; align-items:center; justify-content:center; padding:0; }
+  .filter-nav-btn:hover { color:var(--accent); }
+  .nav-arrow-btn { width:28px; height:28px; border-radius:5px; border:1px solid var(--border); background:var(--bg3); color:var(--text2); font-size:18px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .nav-arrow-btn:hover { background:var(--bg4); border-color:var(--border2); color:var(--accent); }
+
+  /* ===== CUSTOM CALENDAR ===== */
+  .custom-cal { position:absolute; top:calc(100% + 4px); left:0; z-index:200; background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.13); padding:14px; width:260px; }
+  .custom-cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .custom-cal-title { font-size:14px; font-weight:600; color:var(--text); }
+  .custom-cal-nav { width:28px; height:28px; border:1px solid var(--border); border-radius:5px; background:var(--bg3); color:var(--text2); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+  .custom-cal-nav:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .custom-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .custom-cal-dow { text-align:center; font-size:10px; font-weight:700; color:var(--text3); padding:3px 0; }
+  .custom-cal-day { text-align:center; font-size:12px; padding:5px 2px; border-radius:5px; cursor:pointer; color:var(--text2); transition:all 0.1s; border:none; background:none; font-family:var(--sans); }
+  .custom-cal-day:hover { background:var(--accent-subtle); color:var(--accent); }
+  .custom-cal-day.today { font-weight:700; color:var(--accent); }
+  .custom-cal-day.selected { background:var(--accent); color:#fff !important; font-weight:600; }
+  .custom-cal-day.other-month { color:var(--border2); }
+  .custom-cal-day.sun { color:var(--red); }
+  .custom-cal-day.sat { color:var(--accent); }
+  .custom-cal-day.selected.sun, .custom-cal-day.selected.sat { color:#fff !important; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg3); }
+  ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--accent); }
+
+  .empty-state { text-align:center; padding:40px; color:var(--text3); font-size:13px; }
+  .delete-confirm-area { display:flex; gap:4px; align-items:center; }
+  .delete-confirm-text { font-size:11px; color:var(--red); white-space:nowrap; }
+
+  /* ===== MODAL ===== */
+  .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:200; align-items:center; justify-content:center; }
+  .modal-backdrop.open { display:flex; }
+  .modal-box { background:#fff; border-radius:12px; padding:28px; width:580px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.18); animation:slideUp 0.2s ease; }
+  @keyframes slideUp { from { transform:translateY(16px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .modal-title { font-size:15px; font-weight:600; color:var(--text); }
+  .modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text3); }
+  .modal-close:hover { color:var(--text); }
+
+  /* LOGIN */
+  #loginOverlay { display:none; position:fixed; inset:0; background:linear-gradient(135deg,#2d1a0a 0%,#1a0e04 100%); z-index:9999; align-items:center; justify-content:center; }
+
+  /* toast */
+  #toastMsg { position:fixed; bottom:24px; right:24px; background:#1a2236; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+
+  @media print {
+    .header, .sidebar, .chart-card, #formCard, .filter-bar, .btn, #toastMsg { display:none !important; }
+    .main { display:block; height:auto; }
+    .content { padding:0; }
+    body { background:#fff; }
+    .table-wrap { border:1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay" style="display:flex;">
+  <div style="background:#fff; border-radius:16px; padding:40px 48px; width:380px; max-width:92vw; box-shadow:0 20px 60px rgba(0,0,0,0.4); text-align:center;">
+    <div style="font-size:13px; font-weight:700; letter-spacing:0.08em; color:var(--accent); margin-bottom:6px;">FRe:x Design inc.</div>
+    <div style="font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px;">横手事業所 入出金帳簿</div>
+    <div style="font-size:12px; color:var(--text3); margin-bottom:32px;">社内限定システム　ログインが必要です</div>
+    <div style="text-align:left; margin-bottom:16px;">
+      <div style="font-size:11px; color:var(--text3); margin-bottom:6px; font-weight:500;">パスワード</div>
+      <input type="password" id="loginPassword" placeholder="パスワードを入力"
+        style="width:100%; padding:10px 14px; border:1.5px solid var(--border2); border-radius:8px; font-size:14px; font-family:var(--sans); outline:none; color:var(--text);"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"
+        onkeydown="if(event.key==='Enter') doLogin()">
+      <div id="loginError" style="display:none; margin-top:8px; font-size:12px; color:var(--red);">パスワードが違います</div>
+    </div>
+    <button onclick="doLogin()" style="width:100%; padding:12px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:600; font-family:var(--sans); cursor:pointer; transition:all 0.15s;"
+      onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">ログイン</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo"><span class="logo-dot"></span> FRe:x Design inc.</div>
+    <div class="header-title">🏦 横手事業所 入出金帳簿</div>
+  </div>
+  <div class="header-right">
+    <span class="today-badge" id="todayLabel"></span>
+    <button class="btn btn-ghost btn-sm" onclick="openCsvExport()">📥 CSV出力</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 印刷</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <!-- 手元資金合計 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">手元資金合計</div>
+      <div class="balance-hero" style="background:linear-gradient(135deg,rgba(230,126,34,0.14),rgba(230,126,34,0.04)); border-color:var(--accent-border);">
+        <div class="balance-hero-amount" id="sideTotalBalance" style="font-size:20px;">―</div>
+        <div class="balance-hero-sub">本日時点</div>
+      </div>
+    </div>
+
+    <!-- 口座残高 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">口座残高</div>
+      <div class="balance-hero">
+        <div class="balance-hero-label">秋田銀行（横手）</div>
+        <div class="balance-hero-amount" id="sideBalance">―</div>
+        <div class="balance-hero-sub">本日時点</div>
+      </div>
+      <button onclick="toggleBalanceAdjust('bank')" style="margin-top:10px; width:100%; padding:5px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:11px; color:var(--text3); cursor:pointer; font-family:var(--sans);"
+        onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">✏️ 実残高を修正</button>
+      <div id="balanceAdjustForm_bank" style="display:none; margin-top:10px; padding:10px; background:var(--accent-subtle); border:1px solid var(--accent-border); border-radius:6px;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:8px; line-height:1.5;">通帳の実残高を入力してください。<br><span style="color:var(--text3);">新しい基準残高として保存します。</span></div>
+        <div style="font-size:11px; color:var(--text3); margin-bottom:4px;">計算値: <span id="adjCalcVal_bank" style="font-family:var(--mono);"></span></div>
+        <input type="number" id="adjInput_bank" placeholder="実残高を入力" style="width:100%; padding:5px 8px; border:1px solid var(--border2); border-radius:4px; font-size:12px; font-family:var(--mono); color:var(--text); background:#fff; outline:none;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button onclick="saveBalanceAdjust('bank')" class="btn btn-primary btn-sm" style="flex:1; font-size:11px;">保存</button>
+          <button onclick="toggleBalanceAdjust('bank')" class="btn btn-ghost btn-sm" style="font-size:11px;">閉じる</button>
+        </div>
+      </div>
+    </div>
+    <!-- 現金残高 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">現金残高</div>
+      <div class="balance-hero" style="background:linear-gradient(135deg,rgba(22,163,74,0.10),rgba(22,163,74,0.04)); border-color:rgba(22,163,74,0.28);">
+        <div class="balance-hero-label" style="color:var(--green);">現金（横手）</div>
+        <div class="balance-hero-amount" id="sideCashBalance">―</div>
+        <div class="balance-hero-sub">本日時点</div>
+      </div>
+      <button onclick="toggleBalanceAdjust('cash')" style="margin-top:10px; width:100%; padding:5px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:11px; color:var(--text3); cursor:pointer; font-family:var(--sans);"
+        onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">✏️ 実残高を修正</button>
+      <div id="balanceAdjustForm_cash" style="display:none; margin-top:10px; padding:10px; background:rgba(22,163,74,0.07); border:1px solid rgba(22,163,74,0.28); border-radius:6px;">
+        <div style="font-size:11px; color:var(--text2); margin-bottom:8px; line-height:1.5;">現金の実残高を入力してください。<br><span style="color:var(--text3);">新しい基準残高として保存します。</span></div>
+        <div style="font-size:11px; color:var(--text3); margin-bottom:4px;">計算値: <span id="adjCalcVal_cash" style="font-family:var(--mono);"></span></div>
+        <input type="number" id="adjInput_cash" placeholder="実残高を入力" style="width:100%; padding:5px 8px; border:1px solid var(--border2); border-radius:4px; font-size:12px; font-family:var(--mono); color:var(--text); background:#fff; outline:none;"
+          onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border2)'">
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button onclick="saveBalanceAdjust('cash')" class="btn btn-primary btn-sm" style="flex:1; font-size:11px;">保存</button>
+          <button onclick="toggleBalanceAdjust('cash')" class="btn btn-ghost btn-sm" style="font-size:11px;">閉じる</button>
+        </div>
+      </div>
+    </div>
+    <!-- 今月集計 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">今月集計</div>
+      <div class="kpi-mini">
+        <div class="kpi-mini-row">
+          <span class="kpi-mini-label" id="sideMonthLabel">入金</span>
+          <span class="kpi-mini-val in" id="sideMonthIn">―</span>
+        </div>
+        <div class="kpi-mini-row">
+          <span class="kpi-mini-label">出金</span>
+          <span class="kpi-mini-val out" id="sideMonthOut">―</span>
+        </div>
+        <div class="kpi-mini-row">
+          <span class="kpi-mini-label">収支</span>
+          <span class="kpi-mini-val" id="sideMonthNet">―</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ENTRY FORM -->
+    <div class="chart-card" id="formCard">
+      <div class="chart-card-header">
+        <div class="chart-title" id="formCardTitle">入出金入力</div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="openCsvImport()">📂 CSV取込</button>
+        </div>
+      </div>
+      <!-- Mode Tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active-cash" id="modeTab_cash" onclick="switchFormMode('cash')">💴 現金 出金</button>
+        <button class="mode-tab" id="modeTab_withdraw" onclick="switchFormMode('withdraw')">🏧 現金引出</button>
+        <button class="mode-tab" id="modeTab_transfer" onclick="switchFormMode('transfer')">↔️ 資金移動（本社→横手）</button>
+        <button class="mode-tab" id="modeTab_bank" onclick="switchFormMode('bank')">💴 現金 入出金</button>
+      </div>
+
+      <!-- ① 現金 入出金 -->
+      <div class="form-panel" id="formPanel_bank">
+        <div style="background:rgba(22,163,74,0.06); border:1px solid rgba(22,163,74,0.2); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text2);">
+          💴 現金（横手）の入出金を登録します。入金で現金残高が増え、出金で現金残高が減ります。
+        </div>
+        <div style="display:grid; grid-template-columns:160px 100px 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px;">
+          <div class="form-group" style="position:relative;">
+            <label class="form-label">日付</label>
+            <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
+              <div id="entryDateDisplay" onclick="event.stopPropagation(); toggleCal('entry')"
+                style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
+              <input type="hidden" id="entryDate">
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
+            </div>
+            <div id="cal_entry" class="custom-cal" style="display:none;"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">種別</label>
+            <select class="form-select" id="entryType">
+              <option value="in">入金</option>
+              <option value="out">出金</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円）</label>
+            <input type="number" class="form-input" id="entryAmount" placeholder="0" min="0" oninput="previewSideBalance()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">摘要</label>
+            <input type="text" class="form-input" id="entryDesc" placeholder="例：出張手当返金">
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-primary btn-sm" id="submitBtn" onclick="submitEntry('bank')">登録</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end;">
+          <div class="form-group">
+            <label class="form-label">勘定科目</label>
+            <select class="form-select" id="entryCategory">
+              <option value="">― 選択してください ―</option>
+              <option>旅費交通費(手)</option>
+              <option>旅費交通費</option>
+              <option>通信費</option>
+              <option>消耗品</option>
+              <option>その他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">備考</label>
+            <input type="text" class="form-input" id="entryNote" placeholder="任意メモ">
+          </div>
+          <div id="editCancelArea" style="display:none; align-self:end;">
+            <button class="btn btn-ghost btn-sm" onclick="cancelEdit()">キャンセル</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ② 現金 出金 -->
+      <div class="form-panel active" id="formPanel_cash">
+        <div style="background:rgba(22,163,74,0.06); border:1px solid rgba(22,163,74,0.2); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text2);">
+          💴 現金（横手）から支払いを行います。現金残高が減少します。
+        </div>
+        <div style="display:grid; grid-template-columns:160px 1fr 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px;">
+          <div class="form-group" style="position:relative;">
+            <label class="form-label">日付</label>
+            <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
+              <div id="entryDateDisplay2" onclick="event.stopPropagation(); toggleCal('entry')"
+                style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円）</label>
+            <input type="number" class="form-input" id="cashAmount" placeholder="0" min="0" oninput="previewSideBalance()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">支払先</label>
+            <input type="text" class="form-input" id="cashPartner" placeholder="例：ガソリンスタンド">
+          </div>
+          <div class="form-group">
+            <label class="form-label">摘要</label>
+            <input type="text" class="form-input" id="cashDesc" placeholder="例：燃料費">
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-success btn-sm" onclick="submitEntry('cash')">登録</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="form-group">
+            <label class="form-label">勘定科目</label>
+            <select class="form-select" id="cashCategory">
+              <option value="">― 選択してください ―</option>
+              <option>旅費交通費(手)</option>
+              <option>旅費交通費</option>
+              <option>通信費</option>
+              <option>消耗品</option>
+              <option>その他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">備考</label>
+            <input type="text" class="form-input" id="cashNote" placeholder="任意メモ">
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 現金引出 -->
+      <div class="form-panel" id="formPanel_withdraw">
+        <div style="background:rgba(13,148,136,0.06); border:1px solid rgba(13,148,136,0.2); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text2);">
+          🏧 秋田銀行（横手）口座から現金を引き出します。口座残高が減り、現金残高が増えます。
+        </div>
+        <div style="display:grid; grid-template-columns:160px minmax(0,0.5fr) 1fr auto; gap:8px; align-items:end;">
+          <div class="form-group" style="position:relative;">
+            <label class="form-label">日付</label>
+            <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
+              <div id="entryDateDisplay3" onclick="event.stopPropagation(); toggleCal('entry')"
+                style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">引出金額（円）</label>
+            <input type="number" class="form-input" id="withdrawAmount" placeholder="0" min="0" oninput="previewSideBalance()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">摘要（任意）</label>
+            <input type="text" class="form-input" id="withdrawDesc" placeholder="例：業務用現金引出">
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-teal btn-sm" onclick="submitEntry('withdraw')">登録</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ 資金移動（本社→横手） -->
+      <div class="form-panel" id="formPanel_transfer">
+        <div style="background:rgba(124,58,237,0.06); border:1px solid rgba(124,58,237,0.2); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text2);">
+          ↔️ 秋田銀行本社から横手口座への資金移動を登録します。口座残高が増加します。
+        </div>
+        <div style="display:grid; grid-template-columns:160px minmax(0,0.5fr) 1fr auto; gap:8px; align-items:end;">
+          <div class="form-group" style="position:relative;">
+            <label class="form-label">日付</label>
+            <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
+              <div id="entryDateDisplay4" onclick="event.stopPropagation(); toggleCal('entry')"
+                style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円）</label>
+            <input type="number" class="form-input" id="transferAmount" placeholder="0" min="0" oninput="previewSideBalance()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">摘要（任意）</label>
+            <input type="text" class="form-input" id="transferDesc" placeholder="例：本社からの資金移動">
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-sm" style="background:#7c3aed;color:#fff;" onclick="submitEntry('transfer')">登録</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MINI CHART -->
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="nav-arrow-btn" onclick="shiftMiniMonth(-1)">&#8249;</button>
+          <div class="chart-title" id="miniChartTitle">残高推移</div>
+          <button class="nav-arrow-btn" onclick="shiftMiniMonth(1)">&#8250;</button>
+        </div>
+        <div style="font-size:12px; color:var(--text3);" id="miniChartSub"></div>
+      </div>
+      <div style="height:200px;"><canvas id="miniChart"></canvas></div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="section-header">
+      <div class="section-title">入出金明細</div>
+      <div class="filter-bar">
+        <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg2);">
+          <button class="filter-nav-btn" onclick="shiftFilterMonth(-1)">&#8249;</button>
+          <div id="filterMonthDisplay" onclick="openMonthPicker()" style="padding:6px 10px; font-size:13px; color:var(--text); cursor:pointer; min-width:90px; text-align:center; user-select:none;"></div>
+          <button class="filter-nav-btn" onclick="shiftFilterMonth(1)">&#8250;</button>
+        </div>
+        <input type="month" id="filterMonthHidden" style="display:none" onchange="renderTable()">
+        <!-- Month picker dropdown -->
+        <div id="monthPickerDropdown" style="display:none; position:absolute; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.12); padding:16px; z-index:150; min-width:260px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <button class="filter-nav-btn" onclick="shiftPickerYear(-1)">&#8249;</button>
+            <span id="pickerYearLabel" style="font-size:14px; font-weight:600;"></span>
+            <button class="filter-nav-btn" onclick="shiftPickerYear(1)">&#8250;</button>
+          </div>
+          <button id="pickerYearBtn" onclick="selectYear()" style="width:100%; padding:7px; margin-bottom:10px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text2); cursor:pointer; font-family:var(--sans);">年間表示</button>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;" id="pickerMonthGrid"></div>
+        </div>
+        <select id="filterType" onchange="renderTable()">
+          <option value="all">入出金すべて</option>
+          <option value="in">入金のみ</option>
+          <option value="out">出金のみ</option>
+        </select>
+        <input type="text" id="filterSearch" placeholder="摘要・取引先を検索…" style="width:160px;" oninput="renderTable()">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>日付</th>
+            <th>種別</th>
+            <th>取引先</th>
+            <th>摘要</th>
+            <th>科目</th>
+            <th class="text-right">入金（円）</th>
+            <th class="text-right">出金（円）</th>
+            <th class="text-right">現金残高（円）</th>
+            <th class="text-right">口座残高（円）</th>
+            <th>備考</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- CSV EXPORT MODAL -->
+<div class="modal-backdrop" id="csvExportModal">
+  <div class="modal-box" style="width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">CSV出力</span>
+      <button class="modal-close" onclick="closeCsvExport()">✕</button>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px; font-weight:600; color:var(--text2); margin-bottom:10px;">出力範囲</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <input type="radio" name="csvRange" value="all" checked onchange="updateCsvUI()" style="accent-color:var(--accent);">全期間
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <input type="radio" name="csvRange" value="month" onchange="updateCsvUI()" style="accent-color:var(--accent);">月別指定
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <input type="radio" name="csvRange" value="year" onchange="updateCsvUI()" style="accent-color:var(--accent);">年別指定
+        </label>
+      </div>
+      <div id="csvMonthPicker" style="display:none; margin-bottom:10px;">
+        <div style="font-size:11px; color:var(--text3); margin-bottom:6px;">出力月を選択</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="csvMonthBtns"></div>
+      </div>
+      <div id="csvYearPicker" style="display:none; margin-bottom:10px;">
+        <div style="font-size:11px; color:var(--text3); margin-bottom:6px;">出力年を選択</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="csvYearBtns"></div>
+      </div>
+    </div>
+    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:var(--text2);">
+      <span id="csvExportCountTxt">全データ</span> <span id="csvExportCount" style="font-weight:600; color:var(--accent);">-</span> 件を出力します
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn btn-ghost" onclick="closeCsvExport()">キャンセル</button>
+      <button class="btn btn-primary" onclick="doExportCSV()">📥 ダウンロード</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV IMPORT MODAL -->
+<div class="modal-backdrop" id="csvImportModal">
+  <div class="modal-box" style="width:600px;">
+    <div class="modal-header">
+      <span class="modal-title">CSV取込</span>
+      <button class="modal-close" onclick="closeCsvImport()">✕</button>
+    </div>
+    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px; font-size:12px; color:var(--text2); line-height:1.7;">
+      <strong>CSVフォーマット（1行目ヘッダー行として読み飛ばし）</strong><br>
+      列順：<code style="background:var(--accent-subtle);padding:1px 5px;border-radius:3px;">日付, 取引種別, 入出金, 取引先, 摘要, 科目, 金額, 備考</code><br>
+      ・日付：<code>2026-04-01</code> 形式<br>
+      ・取引種別：<code>口座</code> / <code>現金出金</code> / <code>現金入出金</code> / <code>現金引出</code> / <code>資金移動</code><br>
+      ・入出金：<code>入金</code> または <code>出金</code>
+    </div>
+    <div id="csvDropZone" style="border:2px dashed var(--border2); border-radius:8px; padding:28px; text-align:center; cursor:pointer; margin-bottom:14px;"
+      onclick="document.getElementById('csvFileInput2').click()"
+      ondragover="event.preventDefault(); this.style.borderColor='var(--accent)'"
+      ondragleave="this.style.borderColor='var(--border2)'"
+      ondrop="handleCsvDrop(event)">
+      <div style="font-size:28px; margin-bottom:6px;">📂</div>
+      <div style="font-size:13px; color:var(--text2);">クリックしてファイルを選択、またはドラッグ＆ドロップ</div>
+      <div style="font-size:11px; color:var(--text3); margin-top:4px;">.csv ファイル対応</div>
+    </div>
+    <input type="file" id="csvFileInput2" accept=".csv" style="display:none" onchange="handleCsvFile(this.files[0])">
+    <div id="csvImportPreview" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:500;" id="csvImportPreviewTitle"></div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="closeCsvImport()">キャンセル</button>
+          <button class="btn btn-primary btn-sm" onclick="confirmCsvImport()">この内容で取込む</button>
+        </div>
+      </div>
+      <div id="csvImportErrorBox" style="display:none; background:rgba(220,38,38,0.07); border:1px solid rgba(220,38,38,0.3); border-radius:6px; padding:10px; margin-bottom:10px; font-size:12px; color:var(--red);"></div>
+      <div style="overflow-x:auto; border-radius:6px; border:1px solid var(--border);">
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead style="background:var(--bg3);"><tr id="csvPreviewHead"></tr></thead>
+          <tbody id="csvPreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastMsg"></div>
+
+<script>
+// ===== CONSTANTS =====
+const ACCOUNT_ID       = 'akita_yokote';
+const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
+const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
+const INIT_DATE         = '2026-03-01'; // この日より後のエントリを計上
+const STORAGE_KEY       = 'fd_yokote_ledger_v1';
+const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
+const ADJ_KEY_CASH      = 'fd_yokote_adj_cash_v1';
+const AUTH_PW      = 'frex2022';
+
+// ===== STATE =====
+let entries = [];
+let balAdjBank = null; // { date, actual } 口座残高調整
+let balAdjCash = null; // { date, actual } 現金残高調整
+let editingId = null;
+let nextId  = 1;
+let filterYM = '';  // 'YYYY-MM' or 'YYYY' or ''
+let filterYMMode = 'month'; // 'month' | 'year' | 'all'
+let miniMonth = '';
+let pickerYear = new Date().getFullYear();
+let calTarget = ''; // 'entry'
+let calYear = 0; let calMonth = 0;
+let csvParsed = [];
+let csvSelectedMonth = '';
+let csvSelectedYear  = '';
+let miniChart = null;
+
+// ===== STORAGE =====
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, nextId })); }
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) { const d = JSON.parse(raw); entries = d.entries || []; nextId = d.nextId || 1; }
+  const adjB = localStorage.getItem(ADJ_KEY_BANK);
+  if (adjB) balAdjBank = JSON.parse(adjB);
+  const adjC = localStorage.getItem(ADJ_KEY_CASH);
+  if (adjC) balAdjCash = JSON.parse(adjC);
+}
+function saveAdjBank() { localStorage.setItem(ADJ_KEY_BANK, JSON.stringify(balAdjBank)); }
+function saveAdjCash() { localStorage.setItem(ADJ_KEY_CASH, JSON.stringify(balAdjCash)); }
+
+// ===== AUTH =====
+function doLogin() {
+  const pw = document.getElementById('loginPassword').value;
+  if (pw === AUTH_PW) {
+    sessionStorage.setItem('fd_yokote_auth','1');
+    document.getElementById('loginOverlay').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+  }
+}
+
+// ===== UTILS =====
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmt(n) {
+  if (n == null) return '―';
+  return (n < 0 ? '-¥' : '¥') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+}
+function fmtNum(n) {
+  if (n == null) return '―';
+  return (n < 0 ? '-' : '') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+}
+function uid() { return nextId++; }
+
+// ===== BALANCE =====
+function getBalanceAt(date) {
+  // 口座残高（秋田銀行横手）
+  // cash/cash_io は現金専用で口座に影響しない
+  // withdraw（現金引出=口座出金）・transfer（資金移動=口座入金）は影響する
+  let base = INIT_BALANCE_BANK;
+  let baseDate = INIT_DATE;
+  if (balAdjBank && balAdjBank.date <= date) { base = balAdjBank.actual; baseDate = balAdjBank.date; }
+  let bal = base;
+  entries
+    .filter(e => e.status === 'confirmed' && e.date > baseDate && e.date <= date
+              && e.txType !== 'cash' && e.txType !== 'cash_io')
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .forEach(e => { bal += e.type === 'in' ? e.amount : -e.amount; });
+  return bal;
+}
+function getCashBalance() {
+  // 現金残高（入出金帳簿に連動しない独立管理）
+  if (balAdjCash) return balAdjCash.actual;
+  return INIT_BALANCE_CASH;
+}
+
+// ===== INIT =====
+function init() {
+  load();
+  const today = new Date();
+  document.getElementById('todayLabel').textContent =
+    today.toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  const ym = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  filterYM = ym; filterYMMode = 'month';
+  miniMonth = ym;
+  document.getElementById('filterMonthHidden').value = ym;
+  setEntryDate(getTodayStr());
+  renderAll();
+}
+
+function renderAll() {
+  renderSidebar();
+  renderTable();
+  renderMiniChart();
+  updateFilterDisplay();
+}
+
+// ===== SIDEBAR PREVIEW (リアルタイム) =====
+function previewSideBalance() {
+  // 入力中の金額を一時的に反映してサイドバー残高を更新
+  const today = getTodayStr();
+  const bal = getBalanceAt(today);
+  document.getElementById('sideBalance').textContent = fmt(bal);
+
+  // 手元資金合計
+  const totalEl = document.getElementById('sideTotalBalance');
+  if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
+  const cashEl = document.getElementById('sideCashBalance');
+  if (cashEl) cashEl.textContent = fmt(getCashBalance());
+}
+
+// ===== SIDEBAR =====
+function renderSidebar() {
+  const today = getTodayStr();
+  const bal = getBalanceAt(today);
+  document.getElementById('sideBalance').textContent = fmt(bal);
+
+  // 現金残高表示
+  const cashEl = document.getElementById('sideCashBalance');
+  if (cashEl) cashEl.textContent = fmt(getCashBalance());
+
+  const ym = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('sideMonthLabel').textContent = `${new Date().getMonth()+1}月 入金`;
+  const monthEntries = entries.filter(e => e.date.startsWith(ym) && e.status === 'confirmed' && e.txType !== 'cash' && e.txType !== 'cash_io');
+  const mIn  = monthEntries.filter(e => e.type === 'in').reduce((s,e) => s+e.amount, 0);
+  const mOut = monthEntries.filter(e => e.type === 'out').reduce((s,e) => s+e.amount, 0);
+  document.getElementById('sideMonthIn').textContent  = fmt(mIn);
+  document.getElementById('sideMonthOut').textContent = fmt(mOut);
+  const net = mIn - mOut;
+  const netEl = document.getElementById('sideMonthNet');
+  netEl.textContent = fmt(net);
+  netEl.className = 'kpi-mini-val ' + (net >= 0 ? 'in' : 'out');
+
+  // Quick stats
+  const allC = entries.filter(e => e.status === 'confirmed');
+  const allP = entries.filter(e => e.status === 'plan');
+
+}
+
+// ===== SUMMARY CARDS =====
+function renderSummary() {
+  const ym = filterYMMode === 'month' ? filterYM : (filterYMMode === 'year' ? filterYM : null);
+  const filtered = ym ? entries.filter(e => filterYMMode === 'year' ? e.date.startsWith(ym) : e.date.startsWith(ym)) : entries;
+  const confirmed = filtered.filter(e => e.status === 'confirmed');
+  const totalIn  = confirmed.filter(e => e.type === 'in').reduce((s,e) => s+e.amount, 0);
+  const totalOut = confirmed.filter(e => e.type === 'out').reduce((s,e) => s+e.amount, 0);
+
+  // end balance of period
+  let lastDate = '';
+  if (filterYMMode === 'month') {
+    const [y,m] = filterYM.split('-').map(Number);
+    const last = new Date(y, m, 0);
+    lastDate = `${y}-${String(m).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
+  } else if (filterYMMode === 'year') {
+    lastDate = `${filterYM}-12-31`;
+  } else {
+    lastDate = getTodayStr();
+  }
+  const endBal = getBalanceAt(lastDate);
+
+  // 横手手元資金合計 = 口座残高 + 現金残高
+  const handTotal = getBalanceAt(lastDate) + getCashBalance();
+
+  const html = `
+    <div class="summary-card s-balance">
+      <div class="summary-card-label">横手手元資金合計</div>
+      <div class="summary-card-value ${handTotal >= 0 ? 'pos-val' : 'neg-val'}">${fmt(handTotal)}</div>
+      <div class="summary-card-sub">口座 + 現金｜${lastDate}</div>
+    </div>
+    <div class="summary-card s-in">
+      <div class="summary-card-label">入金合計</div>
+      <div class="summary-card-value pos-val">${fmt(totalIn)}</div>
+      <div class="summary-card-sub">${filtered.filter(e=>e.type==='in'&&e.status==='confirmed').length}件</div>
+    </div>
+    <div class="summary-card s-out">
+      <div class="summary-card-label">出金合計</div>
+      <div class="summary-card-value neg-val">${fmt(totalOut)}</div>
+      <div class="summary-card-sub">${filtered.filter(e=>e.type==='out'&&e.status==='confirmed').length}件</div>
+    </div>`;
+  document.getElementById('summaryGrid').innerHTML = html;
+}
+
+// ===== TABLE =====
+function renderTable() {
+  const statusF = 'all'; // 区分フィルター廃止
+  const typeF   = document.getElementById('filterType').value;
+  const q       = document.getElementById('filterSearch').value.trim().toLowerCase();
+
+  // get month/year filter
+  let pfx = '';
+  if (filterYMMode === 'month') pfx = filterYM;
+  else if (filterYMMode === 'year') pfx = filterYM;
+
+  let list = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id);
+
+  // Compute running balance for ALL confirmed entries (chronological)
+  const balMap = {};
+  let runBal = INIT_BALANCE_BANK;
+  let runDate = INIT_DATE;
+  if (balAdjBank) { runBal = balAdjBank.actual; runDate = balAdjBank.date; }
+  list.filter(e => e.status === 'confirmed' && e.date > runDate && e.txType !== 'cash' && e.txType !== 'cash_io') // withdraw・transfer は口座残高に計上
+      .forEach(e => {
+        runBal += e.type === 'in' ? e.amount : -e.amount;
+        balMap[e.id] = runBal;
+      });
+
+  // 現金残高スナップショット（全エントリ時系列順）
+  const cashMap = {};
+  let runCash = INIT_BALANCE_CASH;
+  if (balAdjCash) runCash = balAdjCash.actual;
+  // 再計算: 全現金系エントリを時系列で適用
+  const allSorted = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
+    .filter(e => e.status === 'confirmed');
+  // INIT_BALANCE_CASH から積み上げ
+  let tmpCash = INIT_BALANCE_CASH;
+  allSorted.forEach(e => {
+    if (e.txType === 'withdraw') tmpCash += e.amount;
+    else if (e.txType === 'cash') tmpCash -= e.amount;
+    else if (e.txType === 'cash_io') tmpCash += e.type === 'in' ? e.amount : -e.amount;
+    cashMap[e.id] = tmpCash;
+  });
+
+  // Filter for display
+  if (pfx) list = list.filter(e => e.date.startsWith(pfx));
+  if (statusF !== 'all') list = list.filter(e => e.status === statusF);
+  if (typeF   !== 'all') list = list.filter(e => e.type === typeF);  // 現金・引出・資金移動もtype:'out'/'in'を持つ
+  if (q) list = list.filter(e =>
+    (e.desc   || '').toLowerCase().includes(q) ||
+    (e.partner|| '').toLowerCase().includes(q) ||
+    (e.note   || '').toLowerCase().includes(q)
+  );
+
+  const body = document.getElementById('tableBody');
+  if (list.length === 0) {
+    body.innerHTML = `<tr><td colspan="11" class="empty-state">この期間の取引データはありません</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = list.map(e => {
+    if (editingId === e.id) return buildInlineEdit(e);
+    const bal = balMap[e.id];
+    const balStr = e.status === 'confirmed' && bal != null ? fmtNum(bal) : '―';
+    const balCls = e.status === 'confirmed' && bal != null ? (bal >= 0 ? 'pos-val' : 'neg-val') : 'muted';
+    const txBadge = {
+      bank_in:   '<span class="badge badge-bank">口座 入金</span>',
+      bank_out:  '<span class="badge badge-out">口座 出金</span>',
+      cash:      '<span class="badge badge-cash-out">現金 出金</span>',
+      cash_io_in: '<span class="badge badge-cash-out">現金 入金</span>',
+      cash_io_out:'<span class="badge badge-cash-out">現金 出金</span>',
+      withdraw:  '<span class="badge badge-withdraw">現金引出</span>',
+      transfer:  '<span class="badge badge-transfer">資金移動</span>',
+    };
+    const txKey = e.txType === 'cash' ? 'cash' : e.txType === 'cash_io' ? (e.type==='in'?'cash_io_in':'cash_io_out') : e.txType === 'withdraw' ? 'withdraw' : e.txType === 'transfer' ? 'transfer' : (e.type === 'in' ? 'bank_in' : 'bank_out');
+    const rowCls = (e.txType === 'cash' || e.txType === 'cash_io') ? 'row-cash' : e.txType === 'withdraw' ? 'row-withdraw' : e.txType === 'transfer' ? 'row-transfer' : '';
+    return `<tr id="row_${e.id}" class="${rowCls}">
+      <td class="mono" style="white-space:nowrap;">${e.date}</td>
+      <td>${txBadge[txKey]||''}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.partner||'―'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc||'―'}</td>
+      <td style="font-size:11px;color:var(--text3);">${e.category||''}</td>
+      <td class="text-right mono">${e.type==='in'  ? '<span class="pos-val">+'+fmtNum(e.amount)+'</span>' : '<span class="muted">―</span>'}</td>
+      <td class="text-right mono">${e.type==='out' ? '<span class="neg-val">'+fmtNum(e.amount)+'</span>'  : '<span class="muted">―</span>'}</td>
+      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${cashMap[e.id]!=null ? fmtNum(cashMap[e.id]) : '―'}</td>
+      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io')?'muted':balCls}">${(e.txType==='cash'||e.txType==='cash_io')?'―':(bal!=null?balStr:'―')}</td>
+      <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
+      <td>
+        <div class="edit-actions">
+          <button class="btn btn-edit btn-xs" onclick="startEdit(${e.id})">編集</button>
+          <button class="btn btn-danger btn-xs" onclick="confirmDelete(${e.id})">削除</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function buildInlineEdit(e) {
+  const cats = ['','旅費交通費(手)','旅費交通費','通信費','消耗品','その他'];
+  const catOpts = cats.map(c => `<option ${c===e.category?'selected':''}>${c}</option>`).join('');
+  return `<tr class="inline-edit-row row-editing" id="row_${e.id}">
+    <td><input type="date" id="ie_date" value="${e.date}"></td>
+    <td style="font-size:11px;color:var(--text3);">${e.txType||'bank'}</td>
+    <td><input type="text" id="ie_partner" value="${e.partner||''}"></td>
+    <td><input type="text" id="ie_desc" value="${e.desc||''}"></td>
+    <td><select id="ie_category">${catOpts}</select></td>
+    <td class="text-right"><select id="ie_type"><option value="in" ${e.type==='in'?'selected':''}>入金</option><option value="out" ${e.type==='out'?'selected':''}>出金</option></select></td>
+    <td class="text-right"><input type="number" id="ie_amount" value="${e.amount}" style="text-align:right;"></td>
+    <td>―</td>
+    <td>―</td>
+    <td><input type="text" id="ie_note" value="${e.note||''}"></td>
+    <td>
+      <div class="edit-actions">
+        <button class="btn btn-primary btn-xs" onclick="saveInlineEdit(${e.id})">保存</button>
+        <button class="btn btn-ghost btn-xs" onclick="cancelEdit()">戻る</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+// ===== ENTRY FORM =====
+function setEntryDate(d) {
+  document.getElementById('entryDate').value = d;
+  updateDateDisplay('entry');
+}
+function updateDateDisplay(key) {
+  const val = document.getElementById('entryDate').value;
+  if (!val) return;
+  const [y,m,d] = val.split('-').map(Number);
+  const dt = new Date(y,m-1,d);
+  const days = ['日','月','火','水','木','金','土'];
+  const label = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')} (${days[dt.getDay()]})`;
+  ['entryDateDisplay','entryDateDisplay2','entryDateDisplay3','entryDateDisplay4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = label;
+  });
+}
+function shiftEntryDate(n) {
+  const d = new Date(document.getElementById('entryDate').value);
+  d.setDate(d.getDate() + n);
+  setEntryDate(d.toISOString().slice(0,10));
+  closeCal();
+}
+
+// ===== FORM MODE =====
+let currentMode = 'cash';
+function switchFormMode(mode) {
+  currentMode = mode;
+  ['bank','cash','withdraw','transfer'].forEach(m => {
+    const tab = document.getElementById('modeTab_' + m);
+    const panel = document.getElementById('formPanel_' + m);
+    if (tab) tab.className = 'mode-tab' + (m === mode ? ' active-' + m : '');
+    if (panel) panel.classList.toggle('active', m === mode);
+  });
+  cancelEdit();
+}
+
+function submitEntry(mode) {
+  const date = document.getElementById('entryDate').value;
+  if (!date) { showToast('日付を入力してください'); return; }
+
+  if (mode === 'bank') {
+    // 現金 入出金（現金残高が増減する）
+    const type   = document.getElementById('entryType').value;
+    const amount = parseInt(document.getElementById('entryAmount').value) || 0;
+    const partner= document.getElementById('entryPartner').value.trim();
+    const desc   = document.getElementById('entryDesc').value.trim();
+    const cat    = document.getElementById('entryCategory').value;
+    const note   = document.getElementById('entryNote').value.trim();
+    if (amount <= 0) { showToast('金額を入力してください'); return; }
+    // 現金残高を増減
+    const delta = type === 'in' ? amount : -amount;
+    const newCash = getCashBalance() + delta;
+    balAdjCash = { date, actual: newCash };
+    saveAdjCash();
+    if (editingId !== null) {
+      const idx = entries.findIndex(e => e.id === editingId);
+      entries[idx] = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
+      cancelEdit();
+    } else {
+      entries.push({ id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' });
+    }
+    document.getElementById('entryAmount').value = '';
+    document.getElementById('entryPartner').value = '';
+    document.getElementById('entryDesc').value = '';
+    document.getElementById('entryNote').value = '';
+    document.getElementById('entryCategory').value = '';
+
+  } else if (mode === 'cash') {
+    // 現金 出金
+    const amount = parseInt(document.getElementById('cashAmount').value) || 0;
+    const partner= document.getElementById('cashPartner').value.trim();
+    const desc   = document.getElementById('cashDesc').value.trim();
+    const cat    = document.getElementById('cashCategory').value;
+    const note   = document.getElementById('cashNote').value.trim();
+    if (amount <= 0) { showToast('金額を入力してください'); return; }
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' });
+    // 現金残高を減算
+    const newCash = getCashBalance() - amount;
+    balAdjCash = { date, actual: newCash };
+    saveAdjCash();
+    document.getElementById('cashAmount').value = '';
+    document.getElementById('cashPartner').value = '';
+    document.getElementById('cashDesc').value = '';
+    document.getElementById('cashNote').value = '';
+    document.getElementById('cashCategory').value = '';
+
+  } else if (mode === 'withdraw') {
+    // 現金引出：口座から出金 + 現金に加算
+    const amount = parseInt(document.getElementById('withdrawAmount').value) || 0;
+    const desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
+    if (amount <= 0) { showToast('引出金額を入力してください'); return; }
+    // 口座から出金エントリ
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' });
+    // 現金残高を加算
+    const newCash = getCashBalance() + amount;
+    balAdjCash = { date, actual: newCash };
+    saveAdjCash();
+    document.getElementById('withdrawAmount').value = '';
+    document.getElementById('withdrawDesc').value = '';
+
+  } else if (mode === 'transfer') {
+    // 資金移動（本社→横手）：口座に入金
+    const amount = parseInt(document.getElementById('transferAmount').value) || 0;
+    const desc   = document.getElementById('transferDesc').value.trim() || '本社からの資金移動';
+    if (amount <= 0) { showToast('金額を入力してください'); return; }
+    entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' });
+    document.getElementById('transferAmount').value = '';
+    document.getElementById('transferDesc').value = '';
+  }
+
+  save();
+  renderAll();
+  showToast('登録しました');
+}
+
+function startEdit(id) {
+  const e = entries.find(x => x.id === id);
+  if (!e) return;
+  // 口座入出金のみ編集フォーム対応（現金・引出・資金移動はインライン編集のみ）
+  editingId = id;
+  switchFormMode('bank');
+  setEntryDate(e.date);
+  document.getElementById('entryType').value = e.type;
+  document.getElementById('entryAmount').value = e.amount;
+  document.getElementById('entryPartner').value = e.partner || '';
+  document.getElementById('entryDesc').value = e.desc || '';
+  document.getElementById('entryCategory').value = e.category || '';
+  document.getElementById('entryNote').value = e.note || '';
+  document.getElementById('formCardTitle').textContent = '取引編集中';
+  document.getElementById('submitBtn').textContent = '更新';
+  document.getElementById('editCancelArea').style.display = 'block';
+  renderTable();
+}
+
+function saveInlineEdit(id) {
+  const idx = entries.findIndex(e => e.id === id);
+  entries[idx] = {
+    id,
+    date:     document.getElementById('ie_date').value,
+    status:   'confirmed',
+    txType:   e.txType || 'bank',
+    partner:  document.getElementById('ie_partner').value.trim(),
+    desc:     document.getElementById('ie_desc').value.trim(),
+    category: document.getElementById('ie_category').value,
+    type:     document.getElementById('ie_type').value,
+    amount:   parseInt(document.getElementById('ie_amount').value) || 0,
+    note:     document.getElementById('ie_note').value.trim(),
+  };
+  editingId = null;
+  save(); renderAll(); showToast('更新しました');
+}
+
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('formCardTitle').textContent = '入出金入力';
+  document.getElementById('submitBtn').textContent = '登録';
+  document.getElementById('editCancelArea').style.display = 'none';
+  document.getElementById('entryAmount').value = '';
+  document.getElementById('entryPartner').value = '';
+  document.getElementById('entryDesc').value = '';
+  document.getElementById('entryCategory').value = '';
+  document.getElementById('entryNote').value = '';
+  renderTable();
+}
+
+function confirmDelete(id) {
+  const row = document.getElementById('row_' + id);
+  const ops = row.querySelector('.edit-actions');
+  ops.innerHTML = `<span class="delete-confirm-text">本当に削除？</span>
+    <button class="btn btn-danger btn-xs" onclick="deleteEntry(${id})">はい</button>
+    <button class="btn btn-ghost btn-xs" onclick="renderTable()">いいえ</button>`;
+}
+function deleteEntry(id) {
+  const target = entries.find(e => e.id === id);
+  if (target && target.txType === 'withdraw') {
+    const newCash = getCashBalance() - target.amount;
+    balAdjCash = { date: getTodayStr(), actual: newCash };
+    saveAdjCash();
+  }
+  if (target && (target.txType === 'cash' || (target.txType === 'cash_io' && target.type === 'out'))) {
+    const newCash = getCashBalance() + target.amount;
+    balAdjCash = { date: getTodayStr(), actual: newCash };
+    saveAdjCash();
+  }
+  if (target && target.txType === 'cash_io' && target.type === 'in') {
+    const newCash = getCashBalance() - target.amount;
+    balAdjCash = { date: getTodayStr(), actual: newCash };
+    saveAdjCash();
+  }
+  entries = entries.filter(e => e.id !== id);
+  if (editingId === id) cancelEdit();
+  save(); renderAll(); showToast('削除しました');
+}
+
+// ===== MONTH FILTER =====
+function updateFilterDisplay() {
+  let label = '';
+  if (filterYMMode === 'all') label = '全期間';
+  else if (filterYMMode === 'year') label = filterYM + '年';
+  else { const [y,m] = filterYM.split('-'); label = `${y}年${m}月`; }
+  document.getElementById('filterMonthDisplay').textContent = label;
+}
+function shiftFilterMonth(n) {
+  if (filterYMMode !== 'month') return;
+  const [y,m] = filterYM.split('-').map(Number);
+  const d = new Date(y, m-1+n, 1);
+  filterYM = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('filterMonthHidden').value = filterYM;
+  updateFilterDisplay(); renderSummary(); renderTable();
+}
+function openMonthPicker() {
+  const dp = document.getElementById('monthPickerDropdown');
+  if (dp.style.display !== 'none') { dp.style.display = 'none'; return; }
+  dp.style.display = 'block';
+  document.getElementById('pickerYearLabel').textContent = pickerYear + '年';
+  buildPickerMonths();
+}
+function shiftPickerYear(n) { pickerYear += n; document.getElementById('pickerYearLabel').textContent = pickerYear + '年'; buildPickerMonths(); }
+function buildPickerMonths() {
+  const grid = document.getElementById('pickerMonthGrid');
+  grid.innerHTML = Array.from({length:12},(_,i)=>{
+    const m = String(i+1).padStart(2,'0');
+    const ym = `${pickerYear}-${m}`;
+    const active = filterYMMode==='month' && filterYM===ym ? 'background:var(--accent);border-color:var(--accent);color:#fff;' : '';
+    return `<button onclick="selectMonth('${ym}')" style="padding:5px 4px; border-radius:5px; border:1px solid var(--border); background:var(--bg3); font-size:12px; color:var(--text2); cursor:pointer; font-family:var(--sans); ${active}">${i+1}月</button>`;
+  }).join('');
+  const yb = document.getElementById('pickerYearBtn');
+  yb.textContent = `${pickerYear}年 年間表示`;
+  yb.style.background = filterYMMode==='year' && filterYM===String(pickerYear) ? 'var(--accent)' : 'var(--bg3)';
+  yb.style.color = filterYMMode==='year' && filterYM===String(pickerYear) ? '#fff' : 'var(--text2)';
+}
+function selectMonth(ym) {
+  filterYM = ym; filterYMMode = 'month';
+  document.getElementById('filterMonthHidden').value = ym;
+  document.getElementById('monthPickerDropdown').style.display = 'none';
+  updateFilterDisplay(); renderSummary(); renderTable();
+}
+function selectYear() {
+  filterYM = String(pickerYear); filterYMMode = 'year';
+  document.getElementById('monthPickerDropdown').style.display = 'none';
+  updateFilterDisplay(); renderSummary(); renderTable();
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#monthPickerDropdown') && !e.target.closest('#filterMonthDisplay')) {
+    document.getElementById('monthPickerDropdown').style.display = 'none';
+  }
+  if (!e.target.closest('.custom-cal') && !e.target.closest('#entryDateDisplay')) closeCal();
+});
+
+// ===== CUSTOM CALENDAR =====
+function toggleCal(key) {
+  calTarget = key;
+  const cal = document.getElementById('cal_' + key);
+  if (cal.style.display !== 'none') { cal.style.display = 'none'; return; }
+  const val = document.getElementById('entryDate').value;
+  const d = val ? new Date(val + 'T00:00:00') : new Date();
+  calYear = d.getFullYear(); calMonth = d.getMonth();
+  buildCal(); cal.style.display = 'block';
+}
+function closeCal() {
+  document.querySelectorAll('.custom-cal').forEach(c => c.style.display = 'none');
+}
+function buildCal() {
+  const cal = document.getElementById('cal_' + calTarget);
+  const todayStr = getTodayStr();
+  const selStr = document.getElementById('entryDate').value;
+  const first = new Date(calYear, calMonth, 1);
+  const last  = new Date(calYear, calMonth+1, 0);
+  const startDow = first.getDay();
+  const days = ['日','月','火','水','木','金','土'];
+  let html = `<div class="custom-cal-header">
+    <button class="custom-cal-nav" onclick="shiftCal(-1)">&#8249;</button>
+    <span class="custom-cal-title">${calYear}年${calMonth+1}月</span>
+    <button class="custom-cal-nav" onclick="shiftCal(1)">&#8250;</button>
+  </div><div class="custom-cal-grid">`;
+  days.forEach(d => html += `<div class="custom-cal-dow">${d}</div>`);
+  for (let i=0;i<startDow;i++) html += `<button class="custom-cal-day other-month"></button>`;
+  for (let d=1;d<=last.getDate();d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dow = (startDow + d - 1) % 7;
+    let cls = 'custom-cal-day';
+    if (ds === todayStr) cls += ' today';
+    if (ds === selStr)   cls += ' selected';
+    if (dow === 0) cls += ' sun';
+    if (dow === 6) cls += ' sat';
+    html += `<button class="${cls}" onclick="pickCalDay('${ds}')">${d}</button>`;
+  }
+  html += '</div>';
+  cal.innerHTML = html;
+}
+function shiftCal(n) { calMonth += n; if(calMonth<0){calMonth=11;calYear--;}else if(calMonth>11){calMonth=0;calYear++;} buildCal(); }
+function pickCalDay(ds) { setEntryDate(ds); closeCal(); }
+
+// ===== MINI CHART =====
+function shiftMiniMonth(n) {
+  const [y,m] = miniMonth.split('-').map(Number);
+  const d = new Date(y, m-1+n, 1);
+  miniMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  renderMiniChart();
+}
+function renderMiniChart() {
+  const [y,m] = miniMonth.split('-').map(Number);
+  const days = new Date(y, m, 0).getDate();
+  const labels = [], bankData = [], cashData = [];
+  for (let d=1; d<=days; d++) {
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    labels.push(d + '日');
+    bankData.push(getBalanceAt(ds));
+    cashData.push(getCashBalance()); // 現金は取引ごとに変わるので当日以降は最新値
+  }
+  // 現金残高は日次推移を計算
+  const cashByDay = {};
+  let cashRun = INIT_BALANCE_CASH;
+  if (balAdjCash) cashRun = balAdjCash.actual;
+  // 現金系エントリを日付順に並べて各日の末尾残高を算出
+  const cashEntries = [...entries]
+    .filter(e => e.status === 'confirmed' && e.txType !== null)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  // 月の各日の現金残高スナップショット
+  let tmpCash = INIT_BALANCE_CASH;
+  // まず月初より前の全現金系取引を適用
+  const pfx = `${y}-${String(m).padStart(2,'0')}`;
+  cashEntries.filter(e => e.date < pfx + '-01').forEach(e => {
+    if (e.txType === 'withdraw') tmpCash += e.amount;
+    else if (e.txType === 'cash' || e.txType === 'cash_io') {
+      tmpCash += e.type === 'in' ? e.amount : -e.amount;
+    }
+  });
+  for (let d=1; d<=days; d++) {
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cashEntries.filter(e => e.date === ds).forEach(e => {
+      if (e.txType === 'withdraw') tmpCash += e.amount;
+      else if (e.txType === 'cash' || e.txType === 'cash_io') {
+        tmpCash += e.type === 'in' ? e.amount : -e.amount;
+      }
+    });
+    cashData[d-1] = tmpCash;
+  }
+  const endBank = bankData[bankData.length-1];
+  const endCash = cashData[cashData.length-1];
+  document.getElementById('miniChartTitle').textContent = `${y}年${m}月 残高推移`;
+  document.getElementById('miniChartSub').textContent = `口座末残: ${fmt(endBank)}　現金末残: ${fmt(endCash)}`;
+  const ctx = document.getElementById('miniChart').getContext('2d');
+  if (miniChart) miniChart.destroy();
+  miniChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '口座残高',
+          data: bankData,
+          borderColor: '#e67e22',
+          backgroundColor: 'rgba(230,126,34,0.06)',
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: false,
+          tension: 0.3,
+        },
+        {
+          label: '現金残高',
+          data: cashData,
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.06)',
+          borderWidth: 2,
+          pointRadius: 2,
+          fill: false,
+          tension: 0.3,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { font: { size:11 }, color:'#4a5568', boxWidth:12, padding:12 } },
+        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.raw) } }
+      },
+      scales: {
+        x: { grid: { color: '#eaeff5' }, ticks: { font: { size:11 }, color:'#8a97ab', maxTicksLimit:10 } },
+        y: { grid: { color: '#eaeff5' }, ticks: { font: { size:11 }, color:'#8a97ab', callback: v => '¥'+v.toLocaleString('ja-JP') } }
+      }
+    }
+  });
+}
+
+
+
+// ===== BALANCE ADJUST =====
+function toggleBalanceAdjust(type) {
+  const f = document.getElementById('balanceAdjustForm_' + type);
+  // 他方を閉じる
+  ['bank','cash'].filter(t=>t!==type).forEach(t => {
+    const el = document.getElementById('balanceAdjustForm_' + t);
+    if (el) el.style.display = 'none';
+  });
+  if (f.style.display !== 'none') { f.style.display = 'none'; return; }
+  if (type === 'bank') {
+    document.getElementById('adjCalcVal_bank').textContent = fmt(getBalanceAt(getTodayStr()));
+    document.getElementById('adjInput_bank').value = balAdjBank ? balAdjBank.actual : '';
+  } else {
+    document.getElementById('adjCalcVal_cash').textContent = fmt(getCashBalance());
+    document.getElementById('adjInput_cash').value = balAdjCash ? balAdjCash.actual : '';
+  }
+  f.style.display = 'block';
+}
+function saveBalanceAdjust(type) {
+  const val = parseFloat(document.getElementById('adjInput_' + type).value.replace(/,/g,''));
+  if (isNaN(val)) { alert('正しい金額を入力してください'); return; }
+  if (type === 'bank') {
+    balAdjBank = { date: getTodayStr(), actual: val };
+    saveAdjBank();
+  } else {
+    balAdjCash = { date: getTodayStr(), actual: val };
+    saveAdjCash();
+  }
+  document.getElementById('balanceAdjustForm_' + type).style.display = 'none';
+  renderAll(); showToast('実残高を保存しました');
+}
+
+// ===== CSV EXPORT =====
+let csvExportFilter = { range:'all', month:'', year:'' };
+function openCsvExport() {
+  document.getElementById('csvExportModal').classList.add('open');
+  updateCsvUI();
+}
+function closeCsvExport() { document.getElementById('csvExportModal').classList.remove('open'); }
+function updateCsvUI() {
+  const r = document.querySelector('input[name=csvRange]:checked').value;
+  document.getElementById('csvMonthPicker').style.display = r==='month' ? 'block' : 'none';
+  document.getElementById('csvYearPicker').style.display  = r==='year'  ? 'block' : 'none';
+  if (r==='month') buildCsvMonthBtns();
+  if (r==='year')  buildCsvYearBtns();
+  updateCsvCount(r);
+}
+function buildCsvMonthBtns() {
+  const months = [...new Set(entries.map(e=>e.date.slice(0,7)))].sort();
+  const sel = csvSelectedMonth;
+  document.getElementById('csvMonthBtns').innerHTML = months.map(m => {
+    const [y,mo] = m.split('-');
+    const act = sel===m ? 'background:var(--accent);border-color:var(--accent);color:#fff;' : '';
+    return `<button onclick="selectCsvMonth('${m}')" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--sans);${act}">${y}/${mo}</button>`;
+  }).join('');
+}
+function selectCsvMonth(m) { csvSelectedMonth = m; buildCsvMonthBtns(); updateCsvCount('month'); }
+function buildCsvYearBtns() {
+  const years = [...new Set(entries.map(e=>e.date.slice(0,4)))].sort();
+  const sel = csvSelectedYear;
+  document.getElementById('csvYearBtns').innerHTML = years.map(y => {
+    const act = sel===y ? 'background:var(--accent);border-color:var(--accent);color:#fff;' : '';
+    return `<button onclick="selectCsvYear('${y}')" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--sans);${act}">${y}年</button>`;
+  }).join('');
+}
+function selectCsvYear(y) { csvSelectedYear = y; buildCsvYearBtns(); updateCsvCount('year'); }
+function updateCsvCount(r) {
+  let cnt = entries.length;
+  let lbl = '全データ';
+  if (r==='month' && csvSelectedMonth) { cnt = entries.filter(e=>e.date.startsWith(csvSelectedMonth)).length; lbl = csvSelectedMonth; }
+  if (r==='year'  && csvSelectedYear)  { cnt = entries.filter(e=>e.date.startsWith(csvSelectedYear)).length; lbl = csvSelectedYear+'年'; }
+  document.getElementById('csvExportCountTxt').textContent = lbl;
+  document.getElementById('csvExportCount').textContent = cnt;
+}
+function doExportCSV() {
+  const r = document.querySelector('input[name=csvRange]:checked').value;
+  let list = [...entries].sort((a,b)=>a.date.localeCompare(b.date));
+  if (r==='month' && csvSelectedMonth) list = list.filter(e=>e.date.startsWith(csvSelectedMonth));
+  if (r==='year'  && csvSelectedYear)  list = list.filter(e=>e.date.startsWith(csvSelectedYear));
+
+  // 取引種別ラベル変換
+  const txLabel = t => ({
+    'bank':'口座', 'cash':'現金出金', 'cash_io':'現金入出金',
+    'withdraw':'現金引出', 'transfer':'資金移動'
+  })[t] || '口座';
+
+  // 現金残高スナップショット計算
+  const allSorted = [...entries].sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id)
+    .filter(e=>e.status==='confirmed');
+  let tmpCash = INIT_BALANCE_CASH;
+  const cashSnap = {};
+  allSorted.forEach(e=>{
+    if(e.txType==='withdraw') tmpCash+=e.amount;
+    else if(e.txType==='cash') tmpCash-=e.amount;
+    else if(e.txType==='cash_io') tmpCash+=e.type==='in'?e.amount:-e.amount;
+    cashSnap[e.id]=tmpCash;
+  });
+
+  // 口座残高スナップショット計算
+  let runBal = INIT_BALANCE_BANK;
+  let runDate = INIT_DATE;
+  if(balAdjBank){runBal=balAdjBank.actual;runDate=balAdjBank.date;}
+  const bankSnap = {};
+  [...entries].filter(e=>e.status==='confirmed'&&e.date>runDate&&e.txType!=='cash'&&e.txType!=='cash_io')
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id)
+    .forEach(e=>{runBal+=e.type==='in'?e.amount:-e.amount;bankSnap[e.id]=runBal;});
+
+  const header = '日付,取引種別,入出金,取引先,摘要,科目,金額,現金残高,口座残高,備考\n';
+  const rows = list.map(e => {
+    const isCashOnly = e.txType==='cash'||e.txType==='cash_io';
+    return [
+      e.date,
+      txLabel(e.txType),
+      e.type==='in'?'入金':'出金',
+      e.partner||'',
+      e.desc||'',
+      e.category||'',
+      e.amount,
+      cashSnap[e.id]!=null ? cashSnap[e.id] : '',
+      isCashOnly ? '' : (bankSnap[e.id]!=null ? bankSnap[e.id] : ''),
+      e.note||''
+    ].map(v=>`"${v}"`).join(',');
+  }).join('\n');
+
+  const blob = new Blob(['\uFEFF'+header+rows], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const fn = r==='month' && csvSelectedMonth ? `横手事業所_${csvSelectedMonth}.csv`
+           : r==='year'  && csvSelectedYear  ? `横手事業所_${csvSelectedYear}年.csv`
+           : `横手事業所_全期間.csv`;
+  a.download = fn; a.click();
+  closeCsvExport();
+}
+
+// ===== CSV IMPORT =====
+function openCsvImport() { document.getElementById('csvImportModal').classList.add('open'); }
+function closeCsvImport() {
+  document.getElementById('csvImportModal').classList.remove('open');
+  document.getElementById('csvImportPreview').style.display = 'none';
+  document.getElementById('csvFileInput2').value = '';
+  csvParsed = [];
+}
+function handleCsvDrop(e) {
+  e.preventDefault();
+  document.getElementById('csvDropZone').style.borderColor = 'var(--border2)';
+  const f = e.dataTransfer.files[0];
+  if (f) handleCsvFile(f);
+}
+function handleCsvFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => parseCsv(ev.target.result);
+  reader.readAsText(file, 'UTF-8');
+}
+function parseCsv(text) {
+  const lines = text.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if (lines.length < 2) { alert('データがありません'); return; }
+
+  // ヘッダー行を読み取り列マッピング
+  const headers = lines[0].split(',').map(c=>c.replace(/^"|"$/g,'').trim());
+  const col = name => headers.indexOf(name);
+  // 新形式(取引種別あり) / 旧形式(種別＋区分) の両対応
+  const isNewFormat = col('取引種別') >= 0;
+
+  // 取引種別 → txType 変換
+  const toTxType = s => ({
+    '口座':'bank','現金出金':'cash','現金入出金':'cash_io',
+    '現金引出':'withdraw','資金移動':'transfer'
+  })[s] || 'bank';
+
+  const valid = [], errors = [];
+  lines.slice(1).forEach((line, i) => {
+    if (!line.trim()) return;
+    // カンマ区切り（ダブルクォート内のカンマを考慮）
+    const cols = [];
+    let cur='', inQ=false;
+    for(const ch of line){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    cols.push(cur.trim());
+
+    const get = idx => (cols[idx]||'').replace(/^"|"$/g,'').trim();
+
+    let date, typeStr, txTypeStr, partner, desc, category, amountStr, note;
+    if(isNewFormat){
+      // 新形式: 日付,取引種別,入出金,取引先,摘要,科目,金額,現金残高,口座残高,備考
+      date       = get(col('日付'));
+      txTypeStr  = get(col('取引種別'));
+      typeStr    = get(col('入出金'));
+      partner    = get(col('取引先'));
+      desc       = get(col('摘要'));
+      category   = get(col('科目'));
+      amountStr  = get(col('金額'));
+      note       = get(col('備考'));
+    } else {
+      // 旧形式: 日付,種別,区分,取引先,摘要,科目,金額,備考
+      date      = get(0); typeStr = get(1);
+      txTypeStr = '口座'; // 旧形式はすべて口座扱い
+      partner   = get(3); desc    = get(4);
+      category  = get(5); amountStr = get(6); note = get(7);
+    }
+
+    const errs = [];
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) errs.push('日付エラー');
+    const type = typeStr==='入金'?'in':typeStr==='出金'?'out':null;
+    if(!type) errs.push('入出金エラー');
+    const txType = toTxType(txTypeStr);
+    const amount = parseInt((amountStr||'').replace(/,/g,''));
+    if(isNaN(amount)||amount<=0) errs.push('金額エラー');
+    if(errs.length){errors.push({line:i+2,errs});return;}
+    valid.push({date,type,status:'confirmed',txType,partner,desc,category,amount,note});
+  });
+
+  csvParsed = valid;
+  const prev = document.getElementById('csvImportPreview');
+  prev.style.display = 'block';
+  document.getElementById('csvImportPreviewTitle').textContent =
+    `${valid.length}件取込可能${errors.length?'（'+errors.length+'件エラー）':''}`;
+  const errBox = document.getElementById('csvImportErrorBox');
+  if(errors.length){errBox.style.display='block';errBox.innerHTML='<strong>エラー行：</strong><br>'+errors.map(r=>`行${r.line}: ${r.errs.join('、')}`).join('<br>');}
+  else errBox.style.display='none';
+
+  const txBadgeColor = t=>({bank:'var(--accent)',cash:'var(--green)',cash_io:'var(--green)',withdraw:'var(--teal)',transfer:'#7c3aed'})[t]||'var(--text3)';
+  const txBadgeLabel = t=>({bank:'口座',cash:'現金出金',cash_io:'現金入出金',withdraw:'現金引出',transfer:'資金移動'})[t]||t;
+
+  document.getElementById('csvPreviewHead').innerHTML =
+    ['日付','取引種別','入出金','取引先','摘要','科目','金額','備考']
+    .map(h=>`<th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;">${h}</th>`).join('');
+
+  document.getElementById('csvPreviewBody').innerHTML = valid.slice(0,30).map(r=>`<tr>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;white-space:nowrap;">${r.date}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:${txBadgeColor(r.txType)};">${txBadgeLabel(r.txType)}</span></td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:${r.type==='in'?'var(--green)':'var(--red)'};">${r.type==='in'?'入金':'出金'}</span></td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.partner||'―'}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.desc||'―'}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">${r.category||''}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;text-align:right;">${Number(r.amount).toLocaleString()}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.note||''}</td>
+  </tr>`).join('') + (valid.length>30?`<tr><td colspan="8" style="padding:8px;text-align:center;color:var(--text3);font-size:12px;">…他${valid.length-30}件</td></tr>`:'');
+}
+function confirmCsvImport() {
+  if (!csvParsed.length) { alert('取込可能なデータがありません'); return; }
+  csvParsed.forEach(r => entries.push({ id: uid(), ...r }));
+  save(); closeCsvImport(); renderAll();
+  showToast(`${csvParsed.length}件を取込みました`);
+  csvParsed = [];
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toastMsg');
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2500);
+}
+
+// ===== START =====
+(function() {
+  const ok = sessionStorage.getItem('fd_yokote_auth') === '1';
+  if (ok) { document.getElementById('loginOverlay').style.display = 'none'; init(); }
+  else     { document.getElementById('loginOverlay').style.display = 'flex'; setTimeout(()=>document.getElementById('loginPassword')?.focus(), 100); }
+})();
+</script>
+</body>
+</html>
