@@ -456,6 +456,7 @@
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
+            <div id="cal_entry2" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">金額（円）</label>
@@ -506,6 +507,7 @@
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
+            <div id="cal_entry3" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">引出金額（円）</label>
@@ -535,6 +537,7 @@
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
+            <div id="cal_entry4" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">金額（円）</label>
@@ -1402,24 +1405,48 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#monthPickerDropdown') && !e.target.closest('#filterMonthDisplay')) {
     document.getElementById('monthPickerDropdown').style.display = 'none';
   }
-  if (!e.target.closest('.custom-cal') && !e.target.closest('#entryDateDisplay')) closeCal();
+  if (!e.target.closest('.custom-cal') &&
+      !e.target.closest('#entryDateDisplay') &&
+      !e.target.closest('#entryDateDisplay2') &&
+      !e.target.closest('#entryDateDisplay3') &&
+      !e.target.closest('#entryDateDisplay4')) {
+    closeCal();
+  }
 });
 
 // ===== CUSTOM CALENDAR =====
+// アクティブパネルに対応するカレンダーIDを返す
+function getActiveCalId() {
+  const modeCalMap = {
+    bank:     'cal_entry',
+    cash:     'cal_entry2',
+    withdraw: 'cal_entry3',
+    transfer: 'cal_entry4'
+  };
+  return modeCalMap[currentMode] || 'cal_entry';
+}
+
 function toggleCal(key) {
   calTarget = key;
-  const cal = document.getElementById('cal_' + key);
+  const calId = getActiveCalId();
+  const cal = document.getElementById(calId);
+  if (!cal) return;
+  // 他のカレンダーを全部閉じる
+  closeCal();
   if (cal.style.display !== 'none') { cal.style.display = 'none'; return; }
   const val = document.getElementById('entryDate').value;
   const d = val ? new Date(val + 'T00:00:00') : new Date();
   calYear = d.getFullYear(); calMonth = d.getMonth();
-  buildCal(); cal.style.display = 'block';
+  buildCal();
+  cal.style.display = 'block';
 }
 function closeCal() {
   document.querySelectorAll('.custom-cal').forEach(c => c.style.display = 'none');
 }
 function buildCal() {
-  const cal = document.getElementById('cal_' + calTarget);
+  const calId = getActiveCalId();
+  const cal = document.getElementById(calId);
+  if (!cal) return;
   const todayStr = getTodayStr();
   const selStr = document.getElementById('entryDate').value;
   const first = new Date(calYear, calMonth, 1);
