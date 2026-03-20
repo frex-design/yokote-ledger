@@ -621,6 +621,63 @@
   </div><!-- /content -->
 </div><!-- /main -->
 
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="editModal">
+  <div class="modal-box" style="width:540px;">
+    <div class="modal-header">
+      <span class="modal-title">✏️ 取引の編集</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+      <div class="form-group">
+        <label class="form-label">日付</label>
+        <input type="date" class="form-input" id="em_date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">入出金</label>
+        <select class="form-select" id="em_type">
+          <option value="in">入金</option>
+          <option value="out">出金</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額（円）</label>
+        <input type="number" class="form-input" id="em_amount" placeholder="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">勘定科目</label>
+        <select class="form-select" id="em_category">
+          <option value="">― 選択してください ―</option>
+          <option>旅費交通費(手)</option>
+          <option>旅費交通費</option>
+          <option>通信費</option>
+          <option>消耗品</option>
+          <option>その他</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">取引先</label>
+        <input type="text" class="form-input" id="em_partner" placeholder="取引先名">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">摘要</label>
+        <input type="text" class="form-input" id="em_desc" placeholder="取引内容">
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label class="form-label">備考</label>
+        <input type="text" class="form-input" id="em_note" placeholder="任意メモ">
+      </div>
+    </div>
+    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:8px 14px; margin-bottom:16px; font-size:12px; color:var(--text3);">
+      取引種別：<span id="em_txtype_label" style="font-weight:600; color:var(--text2);"></span>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn btn-ghost" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEditModal()">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
 <!-- CSV EXPORT MODAL -->
 <div class="modal-backdrop" id="csvExportModal">
   <div class="modal-box" style="width:460px;">
@@ -1120,7 +1177,7 @@ function renderTable() {
       <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
       <td>
         <div class="edit-actions">
-          <button class="btn btn-edit btn-xs" onclick="startInlineEdit('${e.id}')">編集</button>
+          <button class="btn btn-edit btn-xs" onclick="openEditModal('${e.id}')">編集</button>
           <button class="btn btn-danger btn-xs" onclick="confirmDelete('${e.id}')">削除</button>
         </div>
       </td>
@@ -1155,6 +1212,57 @@ function buildInlineEdit(e) {
 function startInlineEdit(id) {
   editingId = id;
   renderTable();
+}
+
+// ===== EDIT MODAL =====
+let editModalId = null;
+const txTypeLabels = {
+  bank: '口座 入出金', cash: '現金 出金', cash_io: '現金 入出金',
+  withdraw: '現金引出', transfer: '資金移動'
+};
+
+function openEditModal(id) {
+  const e = entries.find(x => String(x.id) === String(id));
+  if (!e) return;
+  editModalId = id;
+  document.getElementById('em_date').value     = e.date;
+  document.getElementById('em_type').value     = e.type;
+  document.getElementById('em_amount').value   = e.amount;
+  document.getElementById('em_partner').value  = e.partner || '';
+  document.getElementById('em_desc').value     = e.desc || '';
+  document.getElementById('em_category').value = e.category || '';
+  document.getElementById('em_note').value     = e.note || '';
+  document.getElementById('em_txtype_label').textContent = txTypeLabels[e.txType] || e.txType || '―';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+  editModalId = null;
+  document.getElementById('editModal').classList.remove('open');
+}
+
+async function saveEditModal() {
+  if (!editModalId) return;
+  const idx = entries.findIndex(e => String(e.id) === String(editModalId));
+  if (idx === -1) { showToast('対象データが見つかりません'); return; }
+  const orig = entries[idx];
+  const updated = {
+    id:       editModalId,
+    date:     document.getElementById('em_date').value,
+    type:     document.getElementById('em_type').value,
+    status:   orig.status || 'confirmed',
+    txType:   orig.txType || 'bank',
+    partner:  document.getElementById('em_partner').value.trim(),
+    desc:     document.getElementById('em_desc').value.trim(),
+    category: document.getElementById('em_category').value,
+    amount:   parseInt(document.getElementById('em_amount').value) || 0,
+    note:     document.getElementById('em_note').value.trim(),
+  };
+  entries[idx] = updated;
+  closeEditModal();
+  await updateEntry(updated);
+  renderAll();
+  showToast('更新しました');
 }
 
 // ===== ENTRY FORM =====
