@@ -179,6 +179,9 @@
   .neg-val { color:var(--red); }
   .muted { color:var(--text3); }
 
+  .td-category { font-size:11px; color:var(--text3); }
+  .td-note { font-size:11px; color:var(--text3); max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
   .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:500; }
   .badge-in   { background:rgba(22,163,74,0.12);  color:var(--green); }
   .badge-out  { background:rgba(220,38,38,0.10);  color:var(--red); }
@@ -239,7 +242,7 @@
   .modal-close:hover { color:var(--text); }
 
   /* LOGIN */
-  #loginOverlay { display:none; position:fixed; inset:0; background:linear-gradient(135deg,#2d1a0a 0%,#1a0e04 100%); z-index:9999; align-items:center; justify-content:center; }
+  #loginOverlay { display:none; position:fixed; inset:0; background:linear-gradient(135deg, #e8f0f7 0%, #dce8f0 100%); z-index:9999; align-items:center; justify-content:center; }
 
   /* toast */
   #toastMsg { position:fixed; bottom:24px; right:24px; background:#1a2236; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
@@ -247,11 +250,102 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media print {
-    .header, .sidebar, .chart-card, #formCard, .filter-bar, .btn, #toastMsg { display:none !important; }
-    .main { display:block; height:auto; }
-    .content { padding:0; }
-    body { background:#fff; }
-    .table-wrap { border:1px solid #ccc; }
+    /* 不要な要素を非表示 */
+    .header, .sidebar, .chart-card, #formCard,
+    .filter-bar, .btn, #toastMsg, .modal-backdrop,
+    #loadingOverlay, #loginOverlay { display:none !important; }
+
+    /* レイアウトリセット */
+    * { box-shadow:none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { margin:0; padding:0; background:#fff; }
+    .main { display:block; height:auto; overflow:visible; }
+    .content { padding:0; overflow:visible; }
+
+    /* 印刷タイトル */
+    #printTitle {
+      display: block !important;
+      font-size: 10pt;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 4pt;
+      color: #1a2236;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    /* テーブル外枠 */
+    .table-wrap {
+      border: 0.5pt solid #999;
+      border-radius: 0;
+      overflow: visible;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    /* 全セル共通 */
+    th, td {
+      padding: 1.5pt 2pt;
+      font-size: 5.5pt;
+      font-family: 'Noto Sans JP', sans-serif;
+      border: 0.5pt solid #bbb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+      line-height: 1.6;
+    }
+
+    /* 最終行の下線を明示 */
+    tr:last-child td { border-bottom: 0.5pt solid #bbb !important; }
+
+    /* ヘッダー */
+    thead tr { background: #e8eef5 !important; }
+    th {
+      font-size: 5pt;
+      font-weight: 700;
+      text-align: center;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    /* 操作列非表示 */
+    th:nth-child(11), td:nth-child(11) { display: none; }
+
+    /* 各列幅（合計190mm） */
+    th:nth-child(1),  td:nth-child(1)  { width: 17mm; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 日付 */
+    th:nth-child(2),  td:nth-child(2)  { width: 14mm; font-size:5pt; } /* 種別 */
+    th:nth-child(3),  td:nth-child(3)  { width: 26mm; font-size:5.5pt; } /* 取引先 */
+    th:nth-child(4),  td:nth-child(4)  { width: 38mm; font-size:5.5pt; } /* 摘要 */
+    th:nth-child(5),  td:nth-child(5)  { width: 16mm; font-size:5pt; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; } /* 科目 */
+    th:nth-child(6),  td:nth-child(6)  { width: 14mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 入金 */
+    th:nth-child(7),  td:nth-child(7)  { width: 14mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 出金 */
+    th:nth-child(8),  td:nth-child(8)  { width: 16mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 現金残高 */
+    th:nth-child(9),  td:nth-child(9)  { width: 16mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 口座残高 */
+    th:nth-child(10), td:nth-child(10) { width: 19mm; } /* 備考 */
+
+    /* バッジ：背景なし・文字のみ */
+    .badge {
+      padding: 0;
+      font-size: 5pt;
+      display: inline;
+      border-radius: 0;
+      background: none !important;
+      color: inherit !important;
+    }
+
+    /* 色 */
+    .pos-val { color: #16a34a !important; }
+    .neg-val { color: #dc2626 !important; }
+    .muted   { color: #999 !important; }
+
+    /* ページ設定 A4縦 */
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm;
+    }
   }
 </style>
 </head>
@@ -285,7 +379,7 @@
   <div class="header-right">
     <span class="today-badge" id="todayLabel"></span>
     <button class="btn btn-ghost btn-sm" onclick="openCsvExport()">📥 CSV出力</button>
-    <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 印刷</button>
+    <button class="btn btn-ghost btn-sm" onclick="openPrintModal()">🖨 印刷</button>
   </div>
 </header>
 
@@ -572,22 +666,22 @@
     <div class="section-header">
       <div class="section-title">入出金明細</div>
       <div class="filter-bar">
-        <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg2);">
+        <div style="position:relative; display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:visible; background:var(--bg2);">
           <button class="filter-nav-btn" onclick="shiftFilterMonth(-1)">&#8249;</button>
           <div id="filterMonthDisplay" onclick="openMonthPicker()" style="padding:6px 10px; font-size:13px; color:var(--text); cursor:pointer; min-width:90px; text-align:center; user-select:none;"></div>
           <button class="filter-nav-btn" onclick="shiftFilterMonth(1)">&#8250;</button>
+          <!-- Month picker dropdown -->
+          <div id="monthPickerDropdown" style="display:none; position:absolute; bottom:calc(100% + 6px); left:0; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 -4px 20px rgba(0,0,0,0.12); padding:16px; z-index:150; min-width:260px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <button class="filter-nav-btn" onclick="shiftPickerYear(-1)">&#8249;</button>
+              <span id="pickerYearLabel" style="font-size:14px; font-weight:600;"></span>
+              <button class="filter-nav-btn" onclick="shiftPickerYear(1)">&#8250;</button>
+            </div>
+            <button id="pickerYearBtn" onclick="selectYear()" style="width:100%; padding:7px; margin-bottom:10px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text2); cursor:pointer; font-family:var(--sans);">年間表示</button>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;" id="pickerMonthGrid"></div>
+          </div>
         </div>
         <input type="month" id="filterMonthHidden" style="display:none" onchange="renderTable()">
-        <!-- Month picker dropdown -->
-        <div id="monthPickerDropdown" style="display:none; position:absolute; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.12); padding:16px; z-index:150; min-width:260px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <button class="filter-nav-btn" onclick="shiftPickerYear(-1)">&#8249;</button>
-            <span id="pickerYearLabel" style="font-size:14px; font-weight:600;"></span>
-            <button class="filter-nav-btn" onclick="shiftPickerYear(1)">&#8250;</button>
-          </div>
-          <button id="pickerYearBtn" onclick="selectYear()" style="width:100%; padding:7px; margin-bottom:10px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text2); cursor:pointer; font-family:var(--sans);">年間表示</button>
-          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;" id="pickerMonthGrid"></div>
-        </div>
         <select id="filterType" onchange="renderTable()">
           <option value="all">入出金すべて</option>
           <option value="in">入金のみ</option>
@@ -597,6 +691,7 @@
       </div>
     </div>
 
+    <div id="printTitle" style="display:none;"></div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -620,6 +715,41 @@
 
   </div><!-- /content -->
 </div><!-- /main -->
+
+<!-- PRINT MODAL -->
+<div class="modal-backdrop" id="printModal">
+  <div class="modal-box" style="width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">🖨 印刷設定</span>
+      <button class="modal-close" onclick="closePrintModal()">✕</button>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px; font-weight:600; color:var(--text2); margin-bottom:10px;">印刷範囲</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <input type="radio" name="printRange" value="current" checked onchange="updatePrintUI()" style="accent-color:var(--accent);">現在表示中
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <input type="radio" name="printRange" value="month" onchange="updatePrintUI()" style="accent-color:var(--accent);">月別指定
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <input type="radio" name="printRange" value="all" onchange="updatePrintUI()" style="accent-color:var(--accent);">全期間
+        </label>
+      </div>
+      <div id="printMonthPicker" style="display:none; margin-bottom:10px;">
+        <div style="font-size:11px; color:var(--text3); margin-bottom:6px;">印刷する月を選択</div>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="printMonthBtns"></div>
+      </div>
+    </div>
+    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:var(--text2);">
+      対象件数：<span id="printCount" style="font-weight:600; color:var(--accent);">-</span> 件
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn btn-ghost" onclick="closePrintModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="doPrint()">🖨 印刷する</button>
+    </div>
+  </div>
+</div>
 
 <!-- EDIT MODAL -->
 <div class="modal-backdrop" id="editModal">
@@ -1031,6 +1161,10 @@ function renderSidebar() {
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(getCashBalance());
 
+  // 手元資金合計（口座 + 現金）
+  const totalEl = document.getElementById('sideTotalBalance');
+  if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
+
   const ym = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   document.getElementById('sideMonthLabel').textContent = `${new Date().getMonth()+1}月 入金`;
   const monthEntries = entries.filter(e => e.date.startsWith(ym) && e.status === 'confirmed' && e.txType !== 'cash' && e.txType !== 'cash_io');
@@ -1169,12 +1303,12 @@ function renderTable() {
       <td>${txBadge[txKey]||''}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.partner||'―'}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc||'―'}</td>
-      <td style="font-size:11px;color:var(--text3);">${e.category||''}</td>
+      <td class="td-category">${e.category||''}</td>
       <td class="text-right mono">${e.type==='in'  ? '<span class="pos-val">+'+fmtNum(e.amount)+'</span>' : '<span class="muted">―</span>'}</td>
       <td class="text-right mono">${e.type==='out' ? '<span class="neg-val">'+fmtNum(e.amount)+'</span>'  : '<span class="muted">―</span>'}</td>
       <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${cashMap[e.id]!=null ? fmtNum(cashMap[e.id]) : '―'}</td>
       <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io')?'muted':balCls}">${(e.txType==='cash'||e.txType==='cash_io')?'―':(bal!=null?balStr:'―')}</td>
-      <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
+      <td class="td-note">${e.note||''}</td>
       <td>
         <div class="edit-actions">
           <button class="btn btn-edit btn-xs" onclick="openEditModal('${e.id}')">編集</button>
@@ -1684,6 +1818,103 @@ function renderMiniChart() {
 }
 
 
+
+// ===== PRINT MODAL =====
+let printSelectedMonth = '';
+
+function openPrintModal() {
+  // 現在表示中の月をデフォルト選択
+  printSelectedMonth = filterYMMode === 'month' ? filterYM : '';
+  document.querySelector('input[name=printRange][value="current"]').checked = true;
+  updatePrintUI();
+  document.getElementById('printModal').classList.add('open');
+}
+
+function closePrintModal() {
+  document.getElementById('printModal').classList.remove('open');
+}
+
+function updatePrintUI() {
+  const r = document.querySelector('input[name=printRange]:checked').value;
+  document.getElementById('printMonthPicker').style.display = r === 'month' ? 'block' : 'none';
+  if (r === 'month') buildPrintMonthBtns();
+  updatePrintCount(r);
+}
+
+function buildPrintMonthBtns() {
+  const months = [...new Set(entries.map(e => e.date.slice(0,7)))].sort().reverse();
+  document.getElementById('printMonthBtns').innerHTML = months.map(m => {
+    const [y, mo] = m.split('-');
+    const active = printSelectedMonth === m ? 'background:var(--accent);border-color:var(--accent);color:#fff;' : '';
+    return `<button onclick="selectPrintMonth('${m}')" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--sans);${active}">${y}/${mo}</button>`;
+  }).join('');
+}
+
+function selectPrintMonth(m) {
+  printSelectedMonth = m;
+  buildPrintMonthBtns();
+  updatePrintCount('month');
+}
+
+function updatePrintCount(r) {
+  let cnt = entries.length;
+  if (r === 'current') {
+    if (filterYMMode === 'month') cnt = entries.filter(e => e.date.startsWith(filterYM)).length;
+    else if (filterYMMode === 'year') cnt = entries.filter(e => e.date.startsWith(filterYM)).length;
+  } else if (r === 'month' && printSelectedMonth) {
+    cnt = entries.filter(e => e.date.startsWith(printSelectedMonth)).length;
+  }
+  document.getElementById('printCount').textContent = cnt;
+}
+
+function doPrint() {
+  const r = document.querySelector('input[name=printRange]:checked').value;
+  let printEntries = [...entries];
+  let titleText = '横手事業所 入出金帳簿';
+
+  if (r === 'current') {
+    if (filterYMMode === 'month') {
+      const [y, m] = filterYM.split('-');
+      printEntries = entries.filter(e => e.date.startsWith(filterYM));
+      titleText = `横手事業所 入出金帳簿　${y}年${parseInt(m)}月`;
+    } else if (filterYMMode === 'year') {
+      printEntries = entries.filter(e => e.date.startsWith(filterYM));
+      titleText = `横手事業所 入出金帳簿　${filterYM}年`;
+    }
+  } else if (r === 'month') {
+    if (!printSelectedMonth) { showToast('月を選択してください'); return; }
+    const [y, m] = printSelectedMonth.split('-');
+    printEntries = entries.filter(e => e.date.startsWith(printSelectedMonth));
+    titleText = `横手事業所 入出金帳簿　${y}年${parseInt(m)}月`;
+  }
+
+  // 印刷用データをテーブルに反映
+  const savedFilterYM = filterYM;
+  const savedFilterYMMode = filterYMMode;
+
+  if (r === 'month' && printSelectedMonth) {
+    filterYM = printSelectedMonth;
+    filterYMMode = 'month';
+  } else if (r === 'all') {
+    filterYMMode = 'all';
+  }
+
+  // タイトルを設定
+  document.getElementById('printTitle').textContent = titleText;
+
+  renderTable();
+  closePrintModal();
+
+  setTimeout(() => {
+    window.print();
+    // 印刷後に元の表示に戻す
+    filterYM = savedFilterYM;
+    filterYMMode = savedFilterYMMode;
+    document.getElementById('printTitle').textContent = '';
+    renderTable();
+    updateFilterDisplay();
+  }, 300);
+}
 
 // ===== BALANCE ADJUST =====
 function toggleBalanceAdjust(type) {
