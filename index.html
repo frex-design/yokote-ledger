@@ -394,12 +394,11 @@
             <label class="form-label">日付</label>
             <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
-              <div id="entryDateDisplay" onclick="event.stopPropagation(); toggleCal('entry')"
+              <div id="entryDateDisplay" onclick="event.stopPropagation(); toggleCal('entry', this)"
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <input type="hidden" id="entryDate">
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
-            <div id="cal_entry" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">種別</label>
@@ -452,7 +451,7 @@
             <label class="form-label">日付</label>
             <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
-              <div id="entryDateDisplay2" onclick="event.stopPropagation(); toggleCal('entry')"
+              <div id="entryDateDisplay2" onclick="event.stopPropagation(); toggleCal('entry', this)"
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
@@ -502,7 +501,7 @@
             <label class="form-label">日付</label>
             <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
-              <div id="entryDateDisplay3" onclick="event.stopPropagation(); toggleCal('entry')"
+              <div id="entryDateDisplay3" onclick="event.stopPropagation(); toggleCal('entry', this)"
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
@@ -531,7 +530,7 @@
             <label class="form-label">日付</label>
             <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
-              <div id="entryDateDisplay4" onclick="event.stopPropagation(); toggleCal('entry')"
+              <div id="entryDateDisplay4" onclick="event.stopPropagation(); toggleCal('entry', this)"
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
@@ -700,6 +699,7 @@
   </div>
 </div>
 
+<div id="cal_entry" class="custom-cal" style="display:none; position:fixed; z-index:500;"></div>
 <div id="toastMsg"></div>
 
 <script>
@@ -1267,18 +1267,26 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#monthPickerDropdown') && !e.target.closest('#filterMonthDisplay')) {
     document.getElementById('monthPickerDropdown').style.display = 'none';
   }
-  if (!e.target.closest('.custom-cal') && !e.target.closest('#entryDateDisplay')) closeCal();
+  if (!e.target.closest('.custom-cal') && !e.target.closest('[id^="entryDateDisplay"]')) closeCal();
 });
 
 // ===== CUSTOM CALENDAR =====
-function toggleCal(key) {
-  calTarget = key;
-  const cal = document.getElementById('cal_' + key);
+function toggleCal(key, triggerEl) {
+  calTarget = 'entry'; // 常に共通cal_entryを使用
+  const cal = document.getElementById('cal_entry');
   if (cal.style.display !== 'none') { cal.style.display = 'none'; return; }
   const val = document.getElementById('entryDate').value;
   const d = val ? new Date(val + 'T00:00:00') : new Date();
   calYear = d.getFullYear(); calMonth = d.getMonth();
-  buildCal(); cal.style.display = 'block';
+  buildCal();
+  // トリガー要素の位置に合わせて表示
+  const el = triggerEl || document.getElementById('entryDateDisplay');
+  if (el) {
+    const rect = el.closest ? (el.closest('[style*="border"]') || el).getBoundingClientRect() : el.getBoundingClientRect();
+    cal.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    cal.style.left = rect.left + 'px';
+  }
+  cal.style.display = 'block';
 }
 function closeCal() {
   document.querySelectorAll('.custom-cal').forEach(c => c.style.display = 'none');
