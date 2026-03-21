@@ -179,9 +179,6 @@
   .neg-val { color:var(--red); }
   .muted { color:var(--text3); }
 
-  .td-category { font-size:11px; color:var(--text3); }
-  .td-note { font-size:11px; color:var(--text3); max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
   .badge { display:inline-block; padding:2px 8px; border-radius:3px; font-size:11px; font-weight:500; }
   .badge-in   { background:rgba(22,163,74,0.12);  color:var(--green); }
   .badge-out  { background:rgba(220,38,38,0.10);  color:var(--red); }
@@ -242,110 +239,17 @@
   .modal-close:hover { color:var(--text); }
 
   /* LOGIN */
-  #loginOverlay { display:none; position:fixed; inset:0; background:linear-gradient(135deg, #e8f0f7 0%, #dce8f0 100%); z-index:9999; align-items:center; justify-content:center; }
+  #loginOverlay { display:none; position:fixed; inset:0; background:linear-gradient(135deg,#2d1a0a 0%,#1a0e04 100%); z-index:9999; align-items:center; justify-content:center; }
 
   /* toast */
   #toastMsg { position:fixed; bottom:24px; right:24px; background:#1a2236; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
-
   @media print {
-    /* 不要な要素を非表示 */
-    .header, .sidebar, .chart-card, #formCard,
-    .filter-bar, .btn, #toastMsg, .modal-backdrop,
-    #loadingOverlay, #loginOverlay { display:none !important; }
-
-    /* レイアウトリセット */
-    * { box-shadow:none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    html, body { margin:0; padding:0; background:#fff; }
-    .main { display:block; height:auto; overflow:visible; }
-    .content { padding:0; overflow:visible; }
-
-    /* 印刷タイトル */
-    #printTitle {
-      display: block !important;
-      font-size: 10pt;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 4pt;
-      color: #1a2236;
-      font-family: 'Noto Sans JP', sans-serif;
-    }
-
-    /* テーブル外枠 */
-    .table-wrap {
-      border: 0.5pt solid #999;
-      border-radius: 0;
-      overflow: visible;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-
-    /* 全セル共通 */
-    th, td {
-      padding: 1.5pt 2pt;
-      font-size: 5.5pt;
-      font-family: 'Noto Sans JP', sans-serif;
-      border: 0.5pt solid #bbb;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      vertical-align: middle;
-      line-height: 1.6;
-    }
-
-    /* 最終行の下線を明示 */
-    tr:last-child td { border-bottom: 0.5pt solid #bbb !important; }
-
-    /* ヘッダー */
-    thead tr { background: #e8eef5 !important; }
-    th {
-      font-size: 5pt;
-      font-weight: 700;
-      text-align: center;
-      color: #333;
-      white-space: nowrap;
-    }
-
-    /* 操作列非表示 */
-    th:nth-child(11), td:nth-child(11) { display: none; }
-
-    /* 各列幅（合計190mm） */
-    th:nth-child(1),  td:nth-child(1)  { width: 17mm; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 日付 */
-    th:nth-child(2),  td:nth-child(2)  { width: 14mm; font-size:5pt; } /* 種別 */
-    th:nth-child(3),  td:nth-child(3)  { width: 26mm; font-size:5.5pt; } /* 取引先 */
-    th:nth-child(4),  td:nth-child(4)  { width: 38mm; font-size:5.5pt; } /* 摘要 */
-    th:nth-child(5),  td:nth-child(5)  { width: 16mm; font-size:5pt; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; } /* 科目 */
-    th:nth-child(6),  td:nth-child(6)  { width: 14mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 入金 */
-    th:nth-child(7),  td:nth-child(7)  { width: 14mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 出金 */
-    th:nth-child(8),  td:nth-child(8)  { width: 16mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 現金残高 */
-    th:nth-child(9),  td:nth-child(9)  { width: 16mm; text-align:right; font-family:'JetBrains Mono',monospace; font-size:5pt; } /* 口座残高 */
-    th:nth-child(10), td:nth-child(10) { width: 19mm; } /* 備考 */
-
-    /* バッジ：背景なし・文字のみ */
-    .badge {
-      padding: 0;
-      font-size: 5pt;
-      display: inline;
-      border-radius: 0;
-      background: none !important;
-      color: inherit !important;
-    }
-
-    /* 色 */
-    .pos-val { color: #16a34a !important; }
-    .neg-val { color: #dc2626 !important; }
-    .muted   { color: #999 !important; }
-
-    /* ページ設定 A4縦 */
-    @page {
-      size: A4 portrait;
-      margin: 12mm 10mm;
-    }
+    .header, .sidebar, .chart-card, #formCard, .filter-bar, .btn, #toastMsg { display:none !important; }
+    .main { display:block; height:auto; }
+    .content { padding:0; }
+    body { background:#fff; }
+    .table-wrap { border:1px solid #ccc; }
   }
 </style>
 </head>
@@ -379,7 +283,7 @@
   <div class="header-right">
     <span class="today-badge" id="todayLabel"></span>
     <button class="btn btn-ghost btn-sm" onclick="openCsvExport()">📥 CSV出力</button>
-    <button class="btn btn-ghost btn-sm" onclick="openPrintModal()">🖨 印刷</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 印刷</button>
   </div>
 </header>
 
@@ -550,7 +454,6 @@
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
-            <div id="cal_entry2" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">金額（円）</label>
@@ -601,7 +504,6 @@
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
-            <div id="cal_entry3" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">引出金額（円）</label>
@@ -631,7 +533,6 @@
                 style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
-            <div id="cal_entry4" class="custom-cal" style="display:none;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">金額（円）</label>
@@ -666,22 +567,22 @@
     <div class="section-header">
       <div class="section-title">入出金明細</div>
       <div class="filter-bar">
-        <div style="position:relative; display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:visible; background:var(--bg2);">
+        <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg2);">
           <button class="filter-nav-btn" onclick="shiftFilterMonth(-1)">&#8249;</button>
           <div id="filterMonthDisplay" onclick="openMonthPicker()" style="padding:6px 10px; font-size:13px; color:var(--text); cursor:pointer; min-width:90px; text-align:center; user-select:none;"></div>
           <button class="filter-nav-btn" onclick="shiftFilterMonth(1)">&#8250;</button>
-          <!-- Month picker dropdown -->
-          <div id="monthPickerDropdown" style="display:none; position:absolute; bottom:calc(100% + 6px); left:0; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 -4px 20px rgba(0,0,0,0.12); padding:16px; z-index:150; min-width:260px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <button class="filter-nav-btn" onclick="shiftPickerYear(-1)">&#8249;</button>
-              <span id="pickerYearLabel" style="font-size:14px; font-weight:600;"></span>
-              <button class="filter-nav-btn" onclick="shiftPickerYear(1)">&#8250;</button>
-            </div>
-            <button id="pickerYearBtn" onclick="selectYear()" style="width:100%; padding:7px; margin-bottom:10px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text2); cursor:pointer; font-family:var(--sans);">年間表示</button>
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;" id="pickerMonthGrid"></div>
-          </div>
         </div>
         <input type="month" id="filterMonthHidden" style="display:none" onchange="renderTable()">
+        <!-- Month picker dropdown -->
+        <div id="monthPickerDropdown" style="display:none; position:absolute; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.12); padding:16px; z-index:150; min-width:260px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <button class="filter-nav-btn" onclick="shiftPickerYear(-1)">&#8249;</button>
+            <span id="pickerYearLabel" style="font-size:14px; font-weight:600;"></span>
+            <button class="filter-nav-btn" onclick="shiftPickerYear(1)">&#8250;</button>
+          </div>
+          <button id="pickerYearBtn" onclick="selectYear()" style="width:100%; padding:7px; margin-bottom:10px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text2); cursor:pointer; font-family:var(--sans);">年間表示</button>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;" id="pickerMonthGrid"></div>
+        </div>
         <select id="filterType" onchange="renderTable()">
           <option value="all">入出金すべて</option>
           <option value="in">入金のみ</option>
@@ -691,7 +592,6 @@
       </div>
     </div>
 
-    <div id="printTitle" style="display:none;"></div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -715,98 +615,6 @@
 
   </div><!-- /content -->
 </div><!-- /main -->
-
-<!-- PRINT MODAL -->
-<div class="modal-backdrop" id="printModal">
-  <div class="modal-box" style="width:460px;">
-    <div class="modal-header">
-      <span class="modal-title">🖨 印刷設定</span>
-      <button class="modal-close" onclick="closePrintModal()">✕</button>
-    </div>
-    <div style="margin-bottom:16px;">
-      <div style="font-size:12px; font-weight:600; color:var(--text2); margin-bottom:10px;">印刷範囲</div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-          <input type="radio" name="printRange" value="current" checked onchange="updatePrintUI()" style="accent-color:var(--accent);">現在表示中
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-          <input type="radio" name="printRange" value="month" onchange="updatePrintUI()" style="accent-color:var(--accent);">月別指定
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-          <input type="radio" name="printRange" value="all" onchange="updatePrintUI()" style="accent-color:var(--accent);">全期間
-        </label>
-      </div>
-      <div id="printMonthPicker" style="display:none; margin-bottom:10px;">
-        <div style="font-size:11px; color:var(--text3); margin-bottom:6px;">印刷する月を選択</div>
-        <div style="display:flex; gap:4px; flex-wrap:wrap;" id="printMonthBtns"></div>
-      </div>
-    </div>
-    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:13px; color:var(--text2);">
-      対象件数：<span id="printCount" style="font-weight:600; color:var(--accent);">-</span> 件
-    </div>
-    <div style="display:flex; justify-content:flex-end; gap:8px;">
-      <button class="btn btn-ghost" onclick="closePrintModal()">キャンセル</button>
-      <button class="btn btn-primary" onclick="doPrint()">🖨 印刷する</button>
-    </div>
-  </div>
-</div>
-
-<!-- EDIT MODAL -->
-<div class="modal-backdrop" id="editModal">
-  <div class="modal-box" style="width:540px;">
-    <div class="modal-header">
-      <span class="modal-title">✏️ 取引の編集</span>
-      <button class="modal-close" onclick="closeEditModal()">✕</button>
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
-      <div class="form-group">
-        <label class="form-label">日付</label>
-        <input type="date" class="form-input" id="em_date">
-      </div>
-      <div class="form-group">
-        <label class="form-label">入出金</label>
-        <select class="form-select" id="em_type">
-          <option value="in">入金</option>
-          <option value="out">出金</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">金額（円）</label>
-        <input type="number" class="form-input" id="em_amount" placeholder="0" min="0">
-      </div>
-      <div class="form-group">
-        <label class="form-label">勘定科目</label>
-        <select class="form-select" id="em_category">
-          <option value="">― 選択してください ―</option>
-          <option>旅費交通費(手)</option>
-          <option>旅費交通費</option>
-          <option>通信費</option>
-          <option>消耗品</option>
-          <option>その他</option>
-        </select>
-      </div>
-      <div class="form-group" style="grid-column:1/-1;">
-        <label class="form-label">取引先</label>
-        <input type="text" class="form-input" id="em_partner" placeholder="取引先名">
-      </div>
-      <div class="form-group" style="grid-column:1/-1;">
-        <label class="form-label">摘要</label>
-        <input type="text" class="form-input" id="em_desc" placeholder="取引内容">
-      </div>
-      <div class="form-group" style="grid-column:1/-1;">
-        <label class="form-label">備考</label>
-        <input type="text" class="form-input" id="em_note" placeholder="任意メモ">
-      </div>
-    </div>
-    <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:8px 14px; margin-bottom:16px; font-size:12px; color:var(--text3);">
-      取引種別：<span id="em_txtype_label" style="font-weight:600; color:var(--text2);"></span>
-    </div>
-    <div style="display:flex; justify-content:flex-end; gap:8px;">
-      <button class="btn btn-ghost" onclick="closeEditModal()">キャンセル</button>
-      <button class="btn btn-primary" onclick="saveEditModal()">💾 保存する</button>
-    </div>
-  </div>
-</div>
 
 <!-- CSV EXPORT MODAL -->
 <div class="modal-backdrop" id="csvExportModal">
@@ -894,43 +702,21 @@
 
 <script>
 // ===== CONSTANTS =====
-const ACCOUNT_ID        = 'akita_yokote';
+const ACCOUNT_ID       = 'akita_yokote';
 const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
 const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
 const INIT_DATE         = '2026-03-01'; // この日より後のエントリを計上
-const AUTH_PW           = 'frex2022';
-
-// ===== SUPABASE CONFIG =====
-const SUPABASE_URL = 'https://grhqmuqzpjwiuyexasmm.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyaHFtdXF6cGp3aXV5ZXhhc21tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5ODQ4MzYsImV4cCI6MjA4OTU2MDgzNn0.USghV32TAEgx2fR62KHN3JI5YHTetsaTU5NgFWTScRo';
-const TABLE = 'yokote_ledger';
-const META_TABLE = 'yokote_meta';
-
-async function sbFetch(path, options = {}) {
-  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-    ...options,
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': options.prefer || '',
-      ...(options.headers || {})
-    }
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    console.error('Supabase error:', err);
-    return null;
-  }
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
+const STORAGE_KEY       = 'fd_yokote_ledger_v1';
+const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
+const ADJ_KEY_CASH      = 'fd_yokote_adj_cash_v1';
+const AUTH_PW      = 'frex2022';
 
 // ===== STATE =====
 let entries = [];
 let balAdjBank = null; // { date, actual } 口座残高調整
 let balAdjCash = null; // { date, actual } 現金残高調整
 let editingId = null;
+let nextId  = 1;
 let filterYM = '';  // 'YYYY-MM' or 'YYYY' or ''
 let filterYMMode = 'month'; // 'month' | 'year' | 'all'
 let miniMonth = '';
@@ -942,123 +728,18 @@ let csvSelectedMonth = '';
 let csvSelectedYear  = '';
 let miniChart = null;
 
-// ===== STORAGE (Supabase) =====
-
-// エントリ1件をSupabaseに保存（新規INSERT）
-async function saveEntry(e) {
-  const row = {
-    entry_id:    String(e.id),
-    date:        e.date,
-    type:        e.type,
-    status:      e.status || 'confirmed',
-    tx_type:     e.txType || 'bank',
-    partner:     e.partner || null,
-    description: e.desc || null,
-    category:    e.category || null,
-    amount:      e.amount,
-    note:        e.note || null
-  };
-  await sbFetch(TABLE, {
-    method: 'POST',
-    prefer: 'return=minimal',
-    body: JSON.stringify(row)
-  });
+// ===== STORAGE =====
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries, nextId })); }
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) { const d = JSON.parse(raw); entries = d.entries || []; nextId = d.nextId || 1; }
+  const adjB = localStorage.getItem(ADJ_KEY_BANK);
+  if (adjB) balAdjBank = JSON.parse(adjB);
+  const adjC = localStorage.getItem(ADJ_KEY_CASH);
+  if (adjC) balAdjCash = JSON.parse(adjC);
 }
-
-// エントリ1件を更新（UPDATE）
-async function updateEntry(e) {
-  const row = {
-    date:        e.date,
-    type:        e.type,
-    status:      e.status || 'confirmed',
-    tx_type:     e.txType || 'bank',
-    partner:     e.partner || null,
-    description: e.desc || null,
-    category:    e.category || null,
-    amount:      e.amount,
-    note:        e.note || null
-  };
-  await sbFetch(TABLE + '?entry_id=eq.' + encodeURIComponent(String(e.id)), {
-    method: 'PATCH',
-    prefer: 'return=minimal',
-    body: JSON.stringify(row)
-  });
-}
-
-// エントリ1件を削除（DELETE）
-async function deleteEntryDb(id) {
-  await sbFetch(TABLE + '?entry_id=eq.' + encodeURIComponent(String(id)), {
-    method: 'DELETE'
-  });
-}
-
-// メタデータ（残高調整）を保存
-async function saveMeta(key, value) {
-  const row = { meta_key: key, meta_value: JSON.stringify(value) };
-  await sbFetch(META_TABLE + '?meta_key=eq.' + encodeURIComponent(key), {
-    method: 'DELETE'
-  });
-  await sbFetch(META_TABLE, {
-    method: 'POST',
-    prefer: 'return=minimal',
-    body: JSON.stringify(row)
-  });
-}
-
-// 全データを読み込む
-async function load() {
-  showLoadingOverlay(true);
-  try {
-    // エントリ取得
-    const rows = await sbFetch(TABLE + '?order=date.asc,entry_id.asc');
-    if (rows) {
-      entries = rows.map(r => ({
-        id:       r.entry_id,
-        date:     r.date,
-        type:     r.type,
-        status:   r.status,
-        txType:   r.tx_type,
-        partner:  r.partner || '',
-        desc:     r.description || '',
-        category: r.category || '',
-        amount:   r.amount,
-        note:     r.note || ''
-      }));
-    }
-    // メタデータ取得
-    const metas = await sbFetch(META_TABLE);
-    if (metas) {
-      metas.forEach(m => {
-        if (m.meta_key === 'adj_bank') balAdjBank = JSON.parse(m.meta_value);
-        if (m.meta_key === 'adj_cash') balAdjCash = JSON.parse(m.meta_value);
-      });
-    }
-  } catch(err) {
-    console.error('load error:', err);
-    showToast('データ読込に失敗しました');
-  }
-  showLoadingOverlay(false);
-}
-
-function showLoadingOverlay(show) {
-  let el = document.getElementById('loadingOverlay');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'loadingOverlay';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(255,255,255,0.8);z-index:500;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2);gap:10px;';
-    el.innerHTML = '<div style="width:20px;height:20px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div> 読み込み中…';
-    document.body.appendChild(el);
-  }
-  el.style.display = show ? 'flex' : 'none';
-}
-
-// 残高調整保存
-async function saveAdjBank() {
-  await saveMeta('adj_bank', balAdjBank);
-}
-async function saveAdjCash() {
-  await saveMeta('adj_cash', balAdjCash);
-}
+function saveAdjBank() { localStorage.setItem(ADJ_KEY_BANK, JSON.stringify(balAdjBank)); }
+function saveAdjCash() { localStorage.setItem(ADJ_KEY_CASH, JSON.stringify(balAdjCash)); }
 
 // ===== AUTH =====
 function doLogin() {
@@ -1087,12 +768,7 @@ function fmtNum(n) {
   if (n == null) return '―';
   return (n < 0 ? '-' : '') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
 }
-function uid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0;
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-  });
-}
+function uid() { return nextId++; }
 
 // ===== BALANCE =====
 function getBalanceAt(date) {
@@ -1117,8 +793,8 @@ function getCashBalance() {
 }
 
 // ===== INIT =====
-async function init() {
-  await load();
+function init() {
+  load();
   const today = new Date();
   document.getElementById('todayLabel').textContent =
     today.toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'short'});
@@ -1160,10 +836,6 @@ function renderSidebar() {
   // 現金残高表示
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(getCashBalance());
-
-  // 手元資金合計（口座 + 現金）
-  const totalEl = document.getElementById('sideTotalBalance');
-  if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
 
   const ym = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   document.getElementById('sideMonthLabel').textContent = `${new Date().getMonth()+1}月 入金`;
@@ -1283,7 +955,7 @@ function renderTable() {
   }
 
   body.innerHTML = list.map(e => {
-    if (editingId !== null && String(editingId) === String(e.id)) return buildInlineEdit(e);
+    if (editingId === e.id) return buildInlineEdit(e);
     const bal = balMap[e.id];
     const balStr = e.status === 'confirmed' && bal != null ? fmtNum(bal) : '―';
     const balCls = e.status === 'confirmed' && bal != null ? (bal >= 0 ? 'pos-val' : 'neg-val') : 'muted';
@@ -1303,16 +975,16 @@ function renderTable() {
       <td>${txBadge[txKey]||''}</td>
       <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.partner||'―'}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc||'―'}</td>
-      <td class="td-category">${e.category||''}</td>
+      <td style="font-size:11px;color:var(--text3);">${e.category||''}</td>
       <td class="text-right mono">${e.type==='in'  ? '<span class="pos-val">+'+fmtNum(e.amount)+'</span>' : '<span class="muted">―</span>'}</td>
       <td class="text-right mono">${e.type==='out' ? '<span class="neg-val">'+fmtNum(e.amount)+'</span>'  : '<span class="muted">―</span>'}</td>
       <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${cashMap[e.id]!=null ? fmtNum(cashMap[e.id]) : '―'}</td>
       <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io')?'muted':balCls}">${(e.txType==='cash'||e.txType==='cash_io')?'―':(bal!=null?balStr:'―')}</td>
-      <td class="td-note">${e.note||''}</td>
+      <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
       <td>
         <div class="edit-actions">
-          <button class="btn btn-edit btn-xs" onclick="openEditModal('${e.id}')">編集</button>
-          <button class="btn btn-danger btn-xs" onclick="confirmDelete('${e.id}')">削除</button>
+          <button class="btn btn-edit btn-xs" onclick="startEdit(${e.id})">編集</button>
+          <button class="btn btn-danger btn-xs" onclick="confirmDelete(${e.id})">削除</button>
         </div>
       </td>
     </tr>`;
@@ -1335,68 +1007,11 @@ function buildInlineEdit(e) {
     <td><input type="text" id="ie_note" value="${e.note||''}"></td>
     <td>
       <div class="edit-actions">
-        <button class="btn btn-primary btn-xs" onclick="saveInlineEdit('${e.id}')">保存</button>
+        <button class="btn btn-primary btn-xs" onclick="saveInlineEdit(${e.id})">保存</button>
         <button class="btn btn-ghost btn-xs" onclick="cancelEdit()">戻る</button>
       </div>
     </td>
   </tr>`;
-}
-
-// インライン編集開始
-function startInlineEdit(id) {
-  editingId = id;
-  renderTable();
-}
-
-// ===== EDIT MODAL =====
-let editModalId = null;
-const txTypeLabels = {
-  bank: '口座 入出金', cash: '現金 出金', cash_io: '現金 入出金',
-  withdraw: '現金引出', transfer: '資金移動'
-};
-
-function openEditModal(id) {
-  const e = entries.find(x => String(x.id) === String(id));
-  if (!e) return;
-  editModalId = id;
-  document.getElementById('em_date').value     = e.date;
-  document.getElementById('em_type').value     = e.type;
-  document.getElementById('em_amount').value   = e.amount;
-  document.getElementById('em_partner').value  = e.partner || '';
-  document.getElementById('em_desc').value     = e.desc || '';
-  document.getElementById('em_category').value = e.category || '';
-  document.getElementById('em_note').value     = e.note || '';
-  document.getElementById('em_txtype_label').textContent = txTypeLabels[e.txType] || e.txType || '―';
-  document.getElementById('editModal').classList.add('open');
-}
-
-function closeEditModal() {
-  editModalId = null;
-  document.getElementById('editModal').classList.remove('open');
-}
-
-async function saveEditModal() {
-  if (!editModalId) return;
-  const idx = entries.findIndex(e => String(e.id) === String(editModalId));
-  if (idx === -1) { showToast('対象データが見つかりません'); return; }
-  const orig = entries[idx];
-  const updated = {
-    id:       editModalId,
-    date:     document.getElementById('em_date').value,
-    type:     document.getElementById('em_type').value,
-    status:   orig.status || 'confirmed',
-    txType:   orig.txType || 'bank',
-    partner:  document.getElementById('em_partner').value.trim(),
-    desc:     document.getElementById('em_desc').value.trim(),
-    category: document.getElementById('em_category').value,
-    amount:   parseInt(document.getElementById('em_amount').value) || 0,
-    note:     document.getElementById('em_note').value.trim(),
-  };
-  entries[idx] = updated;
-  closeEditModal();
-  await updateEntry(updated);
-  renderAll();
-  showToast('更新しました');
 }
 
 // ===== ENTRY FORM =====
@@ -1436,11 +1051,12 @@ function switchFormMode(mode) {
   cancelEdit();
 }
 
-async function submitEntry(mode) {
+function submitEntry(mode) {
   const date = document.getElementById('entryDate').value;
   if (!date) { showToast('日付を入力してください'); return; }
 
   if (mode === 'bank') {
+    // 現金 入出金（現金残高が増減する）
     const type   = document.getElementById('entryType').value;
     const amount = parseInt(document.getElementById('entryAmount').value) || 0;
     const partner= document.getElementById('entryPartner').value.trim();
@@ -1448,20 +1064,17 @@ async function submitEntry(mode) {
     const cat    = document.getElementById('entryCategory').value;
     const note   = document.getElementById('entryNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
+    // 現金残高を増減
     const delta = type === 'in' ? amount : -amount;
     const newCash = getCashBalance() + delta;
     balAdjCash = { date, actual: newCash };
-    await saveAdjCash();
+    saveAdjCash();
     if (editingId !== null) {
       const idx = entries.findIndex(e => e.id === editingId);
-      const updated = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
-      entries[idx] = updated;
-      await updateEntry(updated);
+      entries[idx] = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
       cancelEdit();
     } else {
-      const newE = { id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
-      entries.push(newE);
-      await saveEntry(newE);
+      entries.push({ id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' });
     }
     document.getElementById('entryAmount').value = '';
     document.getElementById('entryPartner').value = '';
@@ -1470,18 +1083,18 @@ async function submitEntry(mode) {
     document.getElementById('entryCategory').value = '';
 
   } else if (mode === 'cash') {
+    // 現金 出金
     const amount = parseInt(document.getElementById('cashAmount').value) || 0;
     const partner= document.getElementById('cashPartner').value.trim();
     const desc   = document.getElementById('cashDesc').value.trim();
     const cat    = document.getElementById('cashCategory').value;
     const note   = document.getElementById('cashNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    const newE = { id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' };
-    entries.push(newE);
-    await saveEntry(newE);
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' });
+    // 現金残高を減算
     const newCash = getCashBalance() - amount;
     balAdjCash = { date, actual: newCash };
-    await saveAdjCash();
+    saveAdjCash();
     document.getElementById('cashAmount').value = '';
     document.getElementById('cashPartner').value = '';
     document.getElementById('cashDesc').value = '';
@@ -1489,29 +1102,30 @@ async function submitEntry(mode) {
     document.getElementById('cashCategory').value = '';
 
   } else if (mode === 'withdraw') {
+    // 現金引出：口座から出金 + 現金に加算
     const amount = parseInt(document.getElementById('withdrawAmount').value) || 0;
     const desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
     if (amount <= 0) { showToast('引出金額を入力してください'); return; }
-    const newE = { id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' };
-    entries.push(newE);
-    await saveEntry(newE);
+    // 口座から出金エントリ
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' });
+    // 現金残高を加算
     const newCash = getCashBalance() + amount;
     balAdjCash = { date, actual: newCash };
-    await saveAdjCash();
+    saveAdjCash();
     document.getElementById('withdrawAmount').value = '';
     document.getElementById('withdrawDesc').value = '';
 
   } else if (mode === 'transfer') {
+    // 資金移動（本社→横手）：口座に入金
     const amount = parseInt(document.getElementById('transferAmount').value) || 0;
     const desc   = document.getElementById('transferDesc').value.trim() || '本社からの資金移動';
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    const newE = { id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' };
-    entries.push(newE);
-    await saveEntry(newE);
+    entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' });
     document.getElementById('transferAmount').value = '';
     document.getElementById('transferDesc').value = '';
   }
 
+  save();
   renderAll();
   showToast('登録しました');
 }
@@ -1535,15 +1149,13 @@ function startEdit(id) {
   renderTable();
 }
 
-async function saveInlineEdit(id) {
-  const idx = entries.findIndex(e => String(e.id) === String(id));
-  if (idx === -1) { showToast('対象データが見つかりません'); return; }
-  const orig = entries[idx];
-  const updated = {
+function saveInlineEdit(id) {
+  const idx = entries.findIndex(e => e.id === id);
+  entries[idx] = {
     id,
     date:     document.getElementById('ie_date').value,
     status:   'confirmed',
-    txType:   orig.txType || 'bank',
+    txType:   e.txType || 'bank',
     partner:  document.getElementById('ie_partner').value.trim(),
     desc:     document.getElementById('ie_desc').value.trim(),
     category: document.getElementById('ie_category').value,
@@ -1551,11 +1163,8 @@ async function saveInlineEdit(id) {
     amount:   parseInt(document.getElementById('ie_amount').value) || 0,
     note:     document.getElementById('ie_note').value.trim(),
   };
-  entries[idx] = updated;
   editingId = null;
-  await updateEntry(updated);
-  renderAll();
-  showToast('更新しました');
+  save(); renderAll(); showToast('更新しました');
 }
 
 function cancelEdit() {
@@ -1575,31 +1184,29 @@ function confirmDelete(id) {
   const row = document.getElementById('row_' + id);
   const ops = row.querySelector('.edit-actions');
   ops.innerHTML = `<span class="delete-confirm-text">本当に削除？</span>
-    <button class="btn btn-danger btn-xs" onclick="deleteEntry('${id}')">はい</button>
+    <button class="btn btn-danger btn-xs" onclick="deleteEntry(${id})">はい</button>
     <button class="btn btn-ghost btn-xs" onclick="renderTable()">いいえ</button>`;
 }
-async function deleteEntry(id) {
+function deleteEntry(id) {
   const target = entries.find(e => e.id === id);
   if (target && target.txType === 'withdraw') {
     const newCash = getCashBalance() - target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
-    await saveAdjCash();
+    saveAdjCash();
   }
   if (target && (target.txType === 'cash' || (target.txType === 'cash_io' && target.type === 'out'))) {
     const newCash = getCashBalance() + target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
-    await saveAdjCash();
+    saveAdjCash();
   }
   if (target && target.txType === 'cash_io' && target.type === 'in') {
     const newCash = getCashBalance() - target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
-    await saveAdjCash();
+    saveAdjCash();
   }
   entries = entries.filter(e => e.id !== id);
   if (editingId === id) cancelEdit();
-  await deleteEntryDb(id);
-  renderAll();
-  showToast('削除しました');
+  save(); renderAll(); showToast('削除しました');
 }
 
 // ===== MONTH FILTER =====
@@ -1654,48 +1261,24 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#monthPickerDropdown') && !e.target.closest('#filterMonthDisplay')) {
     document.getElementById('monthPickerDropdown').style.display = 'none';
   }
-  if (!e.target.closest('.custom-cal') &&
-      !e.target.closest('#entryDateDisplay') &&
-      !e.target.closest('#entryDateDisplay2') &&
-      !e.target.closest('#entryDateDisplay3') &&
-      !e.target.closest('#entryDateDisplay4')) {
-    closeCal();
-  }
+  if (!e.target.closest('.custom-cal') && !e.target.closest('#entryDateDisplay')) closeCal();
 });
 
 // ===== CUSTOM CALENDAR =====
-// アクティブパネルに対応するカレンダーIDを返す
-function getActiveCalId() {
-  const modeCalMap = {
-    bank:     'cal_entry',
-    cash:     'cal_entry2',
-    withdraw: 'cal_entry3',
-    transfer: 'cal_entry4'
-  };
-  return modeCalMap[currentMode] || 'cal_entry';
-}
-
 function toggleCal(key) {
   calTarget = key;
-  const calId = getActiveCalId();
-  const cal = document.getElementById(calId);
-  if (!cal) return;
-  // 他のカレンダーを全部閉じる
-  closeCal();
+  const cal = document.getElementById('cal_' + key);
   if (cal.style.display !== 'none') { cal.style.display = 'none'; return; }
   const val = document.getElementById('entryDate').value;
   const d = val ? new Date(val + 'T00:00:00') : new Date();
   calYear = d.getFullYear(); calMonth = d.getMonth();
-  buildCal();
-  cal.style.display = 'block';
+  buildCal(); cal.style.display = 'block';
 }
 function closeCal() {
   document.querySelectorAll('.custom-cal').forEach(c => c.style.display = 'none');
 }
 function buildCal() {
-  const calId = getActiveCalId();
-  const cal = document.getElementById(calId);
-  if (!cal) return;
+  const cal = document.getElementById('cal_' + calTarget);
   const todayStr = getTodayStr();
   const selStr = document.getElementById('entryDate').value;
   const first = new Date(calYear, calMonth, 1);
@@ -1819,103 +1402,6 @@ function renderMiniChart() {
 
 
 
-// ===== PRINT MODAL =====
-let printSelectedMonth = '';
-
-function openPrintModal() {
-  // 現在表示中の月をデフォルト選択
-  printSelectedMonth = filterYMMode === 'month' ? filterYM : '';
-  document.querySelector('input[name=printRange][value="current"]').checked = true;
-  updatePrintUI();
-  document.getElementById('printModal').classList.add('open');
-}
-
-function closePrintModal() {
-  document.getElementById('printModal').classList.remove('open');
-}
-
-function updatePrintUI() {
-  const r = document.querySelector('input[name=printRange]:checked').value;
-  document.getElementById('printMonthPicker').style.display = r === 'month' ? 'block' : 'none';
-  if (r === 'month') buildPrintMonthBtns();
-  updatePrintCount(r);
-}
-
-function buildPrintMonthBtns() {
-  const months = [...new Set(entries.map(e => e.date.slice(0,7)))].sort().reverse();
-  document.getElementById('printMonthBtns').innerHTML = months.map(m => {
-    const [y, mo] = m.split('-');
-    const active = printSelectedMonth === m ? 'background:var(--accent);border-color:var(--accent);color:#fff;' : '';
-    return `<button onclick="selectPrintMonth('${m}')" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);font-size:12px;cursor:pointer;font-family:var(--sans);${active}">${y}/${mo}</button>`;
-  }).join('');
-}
-
-function selectPrintMonth(m) {
-  printSelectedMonth = m;
-  buildPrintMonthBtns();
-  updatePrintCount('month');
-}
-
-function updatePrintCount(r) {
-  let cnt = entries.length;
-  if (r === 'current') {
-    if (filterYMMode === 'month') cnt = entries.filter(e => e.date.startsWith(filterYM)).length;
-    else if (filterYMMode === 'year') cnt = entries.filter(e => e.date.startsWith(filterYM)).length;
-  } else if (r === 'month' && printSelectedMonth) {
-    cnt = entries.filter(e => e.date.startsWith(printSelectedMonth)).length;
-  }
-  document.getElementById('printCount').textContent = cnt;
-}
-
-function doPrint() {
-  const r = document.querySelector('input[name=printRange]:checked').value;
-  let printEntries = [...entries];
-  let titleText = '横手事業所 入出金帳簿';
-
-  if (r === 'current') {
-    if (filterYMMode === 'month') {
-      const [y, m] = filterYM.split('-');
-      printEntries = entries.filter(e => e.date.startsWith(filterYM));
-      titleText = `横手事業所 入出金帳簿　${y}年${parseInt(m)}月`;
-    } else if (filterYMMode === 'year') {
-      printEntries = entries.filter(e => e.date.startsWith(filterYM));
-      titleText = `横手事業所 入出金帳簿　${filterYM}年`;
-    }
-  } else if (r === 'month') {
-    if (!printSelectedMonth) { showToast('月を選択してください'); return; }
-    const [y, m] = printSelectedMonth.split('-');
-    printEntries = entries.filter(e => e.date.startsWith(printSelectedMonth));
-    titleText = `横手事業所 入出金帳簿　${y}年${parseInt(m)}月`;
-  }
-
-  // 印刷用データをテーブルに反映
-  const savedFilterYM = filterYM;
-  const savedFilterYMMode = filterYMMode;
-
-  if (r === 'month' && printSelectedMonth) {
-    filterYM = printSelectedMonth;
-    filterYMMode = 'month';
-  } else if (r === 'all') {
-    filterYMMode = 'all';
-  }
-
-  // タイトルを設定
-  document.getElementById('printTitle').textContent = titleText;
-
-  renderTable();
-  closePrintModal();
-
-  setTimeout(() => {
-    window.print();
-    // 印刷後に元の表示に戻す
-    filterYM = savedFilterYM;
-    filterYMMode = savedFilterYMMode;
-    document.getElementById('printTitle').textContent = '';
-    renderTable();
-    updateFilterDisplay();
-  }, 300);
-}
-
 // ===== BALANCE ADJUST =====
 function toggleBalanceAdjust(type) {
   const f = document.getElementById('balanceAdjustForm_' + type);
@@ -1934,15 +1420,15 @@ function toggleBalanceAdjust(type) {
   }
   f.style.display = 'block';
 }
-async function saveBalanceAdjust(type) {
+function saveBalanceAdjust(type) {
   const val = parseFloat(document.getElementById('adjInput_' + type).value.replace(/,/g,''));
   if (isNaN(val)) { alert('正しい金額を入力してください'); return; }
   if (type === 'bank') {
     balAdjBank = { date: getTodayStr(), actual: val };
-    await saveAdjBank();
+    saveAdjBank();
   } else {
     balAdjCash = { date: getTodayStr(), actual: val };
-    await saveAdjCash();
+    saveAdjCash();
   }
   document.getElementById('balanceAdjustForm_' + type).style.display = 'none';
   renderAll(); showToast('実残高を保存しました');
@@ -2158,17 +1644,10 @@ function parseCsv(text) {
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.note||''}</td>
   </tr>`).join('') + (valid.length>30?`<tr><td colspan="8" style="padding:8px;text-align:center;color:var(--text3);font-size:12px;">…他${valid.length-30}件</td></tr>`:'');
 }
-async function confirmCsvImport() {
+function confirmCsvImport() {
   if (!csvParsed.length) { alert('取込可能なデータがありません'); return; }
-  showLoadingOverlay(true);
-  for (const r of csvParsed) {
-    const newE = { id: uid(), ...r };
-    entries.push(newE);
-    await saveEntry(newE);
-  }
-  showLoadingOverlay(false);
-  closeCsvImport();
-  renderAll();
+  csvParsed.forEach(r => entries.push({ id: uid(), ...r }));
+  save(); closeCsvImport(); renderAll();
   showToast(`${csvParsed.length}件を取込みました`);
   csvParsed = [];
 }
@@ -2182,9 +1661,8 @@ function showToast(msg) {
 
 // ===== START =====
 (function() {
-  const ok = sessionStorage.getItem('fd_yokote_auth') === '1';
-  if (ok) { document.getElementById('loginOverlay').style.display = 'none'; init(); }
-  else     { document.getElementById('loginOverlay').style.display = 'flex'; setTimeout(()=>document.getElementById('loginPassword')?.focus(), 100); }
+  document.getElementById('loginOverlay').style.display = 'none';
+  init();
 })();
 </script>
 </body>
