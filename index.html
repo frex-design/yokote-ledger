@@ -656,6 +656,76 @@
   </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div class="modal-backdrop" id="editModal">
+  <div class="modal-box" style="width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">取引を編集</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div style="display:grid; gap:12px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">日付</label>
+          <input type="date" class="form-input" id="em_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">種別</label>
+          <select class="form-select" id="em_txType">
+            <option value="bank">口座</option>
+            <option value="cash">現金出金</option>
+            <option value="cash_io">現金入出金</option>
+            <option value="withdraw">現金引出</option>
+            <option value="transfer">資金移動</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">入出金</label>
+          <select class="form-select" id="em_type">
+            <option value="in">入金</option>
+            <option value="out">出金</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">金額（円）</label>
+          <input type="number" class="form-input" id="em_amount" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">取引先</label>
+        <input type="text" class="form-input" id="em_partner" placeholder="取引先名">
+      </div>
+      <div class="form-group">
+        <label class="form-label">摘要</label>
+        <input type="text" class="form-input" id="em_desc" placeholder="摘要">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">勘定科目</label>
+          <select class="form-select" id="em_category">
+            <option value="">― 選択してください ―</option>
+            <option>旅費交通費(手)</option>
+            <option>旅費交通費</option>
+            <option>通信費</option>
+            <option>消耗品</option>
+            <option>その他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">備考</label>
+          <input type="text" class="form-input" id="em_note" placeholder="任意メモ">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+      <button class="btn btn-ghost" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEditModal()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- CSV IMPORT MODAL -->
 <div class="modal-backdrop" id="csvImportModal">
   <div class="modal-box" style="width:600px;">
@@ -665,10 +735,10 @@
     </div>
     <div style="background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px; font-size:12px; color:var(--text2); line-height:1.7;">
       <strong>CSVフォーマット（1行目ヘッダー行として読み飛ばし）</strong><br>
-      列順：<code style="background:var(--accent-subtle);padding:1px 5px;border-radius:3px;">日付, 取引種別, 入出金, 取引先, 摘要, 科目, 金額, 備考</code><br>
+      列順：<code style="background:var(--accent-subtle);padding:1px 5px;border-radius:3px;">日付, 種別, 取引先, 摘要, 科目, 入金, 出金, 現金残高, 口座残高, 備考</code><br>
       ・日付：<code>2026-04-01</code> 形式<br>
-      ・取引種別：<code>口座</code> / <code>現金出金</code> / <code>現金入出金</code> / <code>現金引出</code> / <code>資金移動</code><br>
-      ・入出金：<code>入金</code> または <code>出金</code>
+      ・種別：<code>口座</code> / <code>現金出金</code> / <code>現金入出金</code> / <code>現金引出</code> / <code>資金移動</code><br>
+      ・入金・出金：どちらかに金額を入力（もう一方は空欄）
     </div>
     <div id="csvDropZone" style="border:2px dashed var(--border2); border-radius:8px; padding:28px; text-align:center; cursor:pointer; margin-bottom:14px;"
       onclick="document.getElementById('csvFileInput2').click()"
@@ -1139,20 +1209,59 @@ function submitEntry(mode) {
 function startEdit(id) {
   const e = entries.find(x => x.id === id);
   if (!e) return;
-  // 口座入出金のみ編集フォーム対応（現金・引出・資金移動はインライン編集のみ）
   editingId = id;
-  switchFormMode('bank');
-  setEntryDate(e.date);
-  document.getElementById('entryType').value = e.type;
-  document.getElementById('entryAmount').value = e.amount;
-  document.getElementById('entryPartner').value = e.partner || '';
-  document.getElementById('entryDesc').value = e.desc || '';
-  document.getElementById('entryCategory').value = e.category || '';
-  document.getElementById('entryNote').value = e.note || '';
-  document.getElementById('formCardTitle').textContent = '取引編集中';
-  document.getElementById('submitBtn').textContent = '更新';
-  document.getElementById('editCancelArea').style.display = 'block';
-  renderTable();
+  // モーダルに値をセット
+  document.getElementById('em_date').value     = e.date;
+  document.getElementById('em_txType').value   = e.txType || 'bank';
+  document.getElementById('em_type').value     = e.type;
+  document.getElementById('em_amount').value   = e.amount;
+  document.getElementById('em_partner').value  = e.partner || '';
+  document.getElementById('em_desc').value     = e.desc || '';
+  document.getElementById('em_category').value = e.category || '';
+  document.getElementById('em_note').value     = e.note || '';
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  editingId = null;
+}
+
+function saveEditModal() {
+  if (editingId === null) return;
+  const idx = entries.findIndex(e => e.id === editingId);
+  if (idx < 0) return;
+  const orig = entries[idx];
+  const date    = document.getElementById('em_date').value;
+  const txType  = document.getElementById('em_txType').value;
+  const type    = document.getElementById('em_type').value;
+  const amount  = parseInt(document.getElementById('em_amount').value) || 0;
+  const partner = document.getElementById('em_partner').value.trim();
+  const desc    = document.getElementById('em_desc').value.trim();
+  const cat     = document.getElementById('em_category').value;
+  const note    = document.getElementById('em_note').value.trim();
+  if (!date || amount <= 0) { showToast('日付と金額を入力してください'); return; }
+
+  // 現金残高の調整：元のtxTypeと新txTypeの差分を反映
+  const cashDelta = (e) => {
+    if (e.txType==='withdraw') return e.amount;
+    if (e.txType==='cash') return -e.amount;
+    if (e.txType==='cash_io') return e.type==='in' ? e.amount : -e.amount;
+    return 0;
+  };
+  const oldDelta = cashDelta(orig);
+  const newEntry = { id: editingId, date, txType, type, status:'confirmed', amount, partner, desc, category:cat, note };
+  const newDelta = cashDelta(newEntry);
+  if (oldDelta !== 0 || newDelta !== 0) {
+    const newCash = getCashBalance() - oldDelta + newDelta;
+    balAdjCash = { date: getTodayStr(), actual: newCash };
+    saveAdjCash();
+  }
+  entries[idx] = newEntry;
+  save();
+  closeEditModal();
+  renderAll();
+  showToast('更新しました');
 }
 
 function saveInlineEdit(id) {
@@ -1523,17 +1632,17 @@ function doExportCSV() {
     .sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id)
     .forEach(e=>{runBal+=e.type==='in'?e.amount:-e.amount;bankSnap[e.id]=runBal;});
 
-  const header = '日付,取引種別,入出金,取引先,摘要,科目,金額,現金残高,口座残高,備考\n';
+  const header = '日付,種別,取引先,摘要,科目,入金,出金,現金残高,口座残高,備考\n';
   const rows = list.map(e => {
     const isCashOnly = e.txType==='cash'||e.txType==='cash_io';
     return [
       e.date,
       txLabel(e.txType),
-      e.type==='in'?'入金':'出金',
       e.partner||'',
       e.desc||'',
       e.category||'',
-      e.amount,
+      e.type==='in' ? e.amount : '',
+      e.type==='out' ? e.amount : '',
       cashSnap[e.id]!=null ? cashSnap[e.id] : '',
       isCashOnly ? '' : (bankSnap[e.id]!=null ? bankSnap[e.id] : ''),
       e.note||''
@@ -1578,7 +1687,7 @@ function parseCsv(text) {
   const headers = lines[0].split(',').map(c=>c.replace(/^"|"$/g,'').trim());
   const col = name => headers.indexOf(name);
   // 新形式(取引種別あり) / 旧形式(種別＋区分) の両対応
-  const isNewFormat = col('取引種別') >= 0;
+  const isNewFormat = col('種別') >= 0 || col('入金') >= 0;
 
   // 取引種別 → txType 変換
   const toTxType = s => ({
@@ -1601,32 +1710,34 @@ function parseCsv(text) {
 
     const get = idx => (cols[idx]||'').replace(/^"|"$/g,'').trim();
 
-    let date, typeStr, txTypeStr, partner, desc, category, amountStr, note;
+    let date, txTypeStr, partner, desc, category, inAmtStr, outAmtStr, note;
     if(isNewFormat){
-      // 新形式: 日付,取引種別,入出金,取引先,摘要,科目,金額,現金残高,口座残高,備考
-      date       = get(col('日付'));
-      txTypeStr  = get(col('取引種別'));
-      typeStr    = get(col('入出金'));
-      partner    = get(col('取引先'));
-      desc       = get(col('摘要'));
-      category   = get(col('科目'));
-      amountStr  = get(col('金額'));
-      note       = get(col('備考'));
+      // 新形式: 日付,種別,取引先,摘要,科目,入金,出金,現金残高,口座残高,備考
+      date      = get(col('日付'));
+      txTypeStr = get(col('種別'));
+      partner   = get(col('取引先'));
+      desc      = get(col('摘要'));
+      category  = get(col('科目'));
+      inAmtStr  = get(col('入金'));
+      outAmtStr = get(col('出金'));
+      note      = get(col('備考'));
     } else {
-      // 旧形式: 日付,種別,区分,取引先,摘要,科目,金額,備考
-      date      = get(0); typeStr = get(1);
-      txTypeStr = '口座'; // 旧形式はすべて口座扱い
-      partner   = get(3); desc    = get(4);
-      category  = get(5); amountStr = get(6); note = get(7);
+      // 旧形式後方互換: 日付,種別,区分,取引先,摘要,科目,金額,備考
+      date      = get(0); txTypeStr = get(1);
+      partner   = get(3); desc      = get(4);
+      category  = get(5);
+      inAmtStr  = ''; outAmtStr = get(6);
+      note      = get(7);
     }
 
     const errs = [];
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) errs.push('日付エラー');
-    const type = typeStr==='入金'?'in':typeStr==='出金'?'out':null;
-    if(!type) errs.push('入出金エラー');
     const txType = toTxType(txTypeStr);
-    const amount = parseInt((amountStr||'').replace(/,/g,''));
-    if(isNaN(amount)||amount<=0) errs.push('金額エラー');
+    const inAmt  = parseInt((inAmtStr ||'').replace(/,/g,'')) || 0;
+    const outAmt = parseInt((outAmtStr||'').replace(/,/g,'')) || 0;
+    const amount = inAmt > 0 ? inAmt : outAmt;
+    const type   = inAmt > 0 ? 'in' : 'out';
+    if(amount <= 0) errs.push('金額エラー（入金・出金どちらかを入力）');
     if(errs.length){errors.push({line:i+2,errs});return;}
     valid.push({date,type,status:'confirmed',txType,partner,desc,category,amount,note});
   });
@@ -1644,17 +1755,17 @@ function parseCsv(text) {
   const txBadgeLabel = t=>({bank:'口座',cash:'現金出金',cash_io:'現金入出金',withdraw:'現金引出',transfer:'資金移動'})[t]||t;
 
   document.getElementById('csvPreviewHead').innerHTML =
-    ['日付','取引種別','入出金','取引先','摘要','科目','金額','備考']
+    ['日付','種別','取引先','摘要','科目','入金','出金','備考']
     .map(h=>`<th style="padding:8px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;">${h}</th>`).join('');
 
   document.getElementById('csvPreviewBody').innerHTML = valid.slice(0,30).map(r=>`<tr>
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;white-space:nowrap;">${r.date}</td>
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:${txBadgeColor(r.txType)};">${txBadgeLabel(r.txType)}</span></td>
-    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:${r.type==='in'?'var(--green)':'var(--red)'};">${r.type==='in'?'入金':'出金'}</span></td>
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.partner||'―'}</td>
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.desc||'―'}</td>
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text3);">${r.category||''}</td>
-    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;text-align:right;">${Number(r.amount).toLocaleString()}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;text-align:right;color:var(--green);">${r.type==='in'?Number(r.amount).toLocaleString():''}</td>
+    <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;text-align:right;color:var(--red);">${r.type==='out'?Number(r.amount).toLocaleString():''}</td>
     <td style="padding:7px 8px;border-bottom:1px solid var(--border);font-size:12px;">${r.note||''}</td>
   </tr>`).join('') + (valid.length>30?`<tr><td colspan="8" style="padding:8px;text-align:center;color:var(--text3);font-size:12px;">…他${valid.length-30}件</td></tr>`:'');
 }
