@@ -837,6 +837,10 @@ function renderSidebar() {
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(getCashBalance());
 
+  // 手元資金合計（口座＋現金）
+  const totalEl = document.getElementById('sideTotalBalance');
+  if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
+
   const ym = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   document.getElementById('sideMonthLabel').textContent = `${new Date().getMonth()+1}月 入金`;
   const monthEntries = entries.filter(e => e.date.startsWith(ym) && e.status === 'confirmed' && e.txType !== 'cash' && e.txType !== 'cash_io');
