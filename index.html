@@ -901,7 +901,7 @@ function renderSummary() {
       <div class="summary-card-value neg-val">${fmt(totalOut)}</div>
       <div class="summary-card-sub">${filtered.filter(e=>e.type==='out'&&e.status==='confirmed').length}件</div>
     </div>`;
-  document.getElementById('summaryGrid').innerHTML = html;
+  const sg = document.getElementById('summaryGrid'); if(sg) sg.innerHTML = html;
 }
 
 // ===== TABLE =====
@@ -1229,7 +1229,7 @@ function shiftFilterMonth(n) {
   const d = new Date(y, m-1+n, 1);
   filterYM = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('filterMonthHidden').value = filterYM;
-  updateFilterDisplay(); renderSummary(); renderTable();
+  updateFilterDisplay(); renderTable();
 }
 function openMonthPicker() {
   const dp = document.getElementById('monthPickerDropdown');
@@ -1256,12 +1256,12 @@ function selectMonth(ym) {
   filterYM = ym; filterYMMode = 'month';
   document.getElementById('filterMonthHidden').value = ym;
   document.getElementById('monthPickerDropdown').style.display = 'none';
-  updateFilterDisplay(); renderSummary(); renderTable();
+  updateFilterDisplay(); renderTable();
 }
 function selectYear() {
   filterYM = String(pickerYear); filterYMMode = 'year';
   document.getElementById('monthPickerDropdown').style.display = 'none';
-  updateFilterDisplay(); renderSummary(); renderTable();
+  updateFilterDisplay(); renderTable();
 }
 document.addEventListener('click', e => {
   if (!e.target.closest('#monthPickerDropdown') && !e.target.closest('#filterMonthDisplay')) {
