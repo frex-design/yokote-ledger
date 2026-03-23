@@ -1135,7 +1135,7 @@ function submitEntry(mode) {
     // 現金 入出金（現金残高が増減する）
     const type   = document.getElementById('entryType').value;
     const amount = parseInt(document.getElementById('entryAmount').value) || 0;
-    const partner= document.getElementById('entryPartner').value.trim();
+    const partner= (document.getElementById('entryPartner') ? document.getElementById('entryPartner').value.trim() : '');
     const desc   = document.getElementById('entryDesc').value.trim();
     const cat    = document.getElementById('entryCategory').value;
     const note   = document.getElementById('entryNote').value.trim();
@@ -1153,7 +1153,7 @@ function submitEntry(mode) {
       entries.push({ id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' });
     }
     document.getElementById('entryAmount').value = '';
-    document.getElementById('entryPartner').value = '';
+    if(document.getElementById('entryPartner')) document.getElementById('entryPartner').value = '';
     document.getElementById('entryDesc').value = '';
     document.getElementById('entryNote').value = '';
     document.getElementById('entryCategory').value = '';
@@ -1288,7 +1288,7 @@ function cancelEdit() {
   document.getElementById('submitBtn').textContent = '登録';
   document.getElementById('editCancelArea').style.display = 'none';
   document.getElementById('entryAmount').value = '';
-  document.getElementById('entryPartner').value = '';
+  if(document.getElementById('entryPartner')) document.getElementById('entryPartner').value = '';
   document.getElementById('entryDesc').value = '';
   document.getElementById('entryCategory').value = '';
   document.getElementById('entryNote').value = '';
