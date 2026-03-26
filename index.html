@@ -364,7 +364,7 @@
       <div class="balance-hero" style="background:linear-gradient(135deg,rgba(22,163,74,0.10),rgba(22,163,74,0.04)); border-color:rgba(22,163,74,0.28);">
         <div class="balance-hero-label" style="color:var(--green);">現金（横手）</div>
         <div class="balance-hero-amount" id="sideCashBalance">―</div>
-        <div class="balance-hero-sub">本日時点</div>
+        <div class="balance-hero-sub" id="sideCashSub">本日時点</div>
       </div>
       <button onclick="toggleBalanceAdjust('cash')" style="margin-top:10px; width:100%; padding:5px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:11px; color:var(--text3); cursor:pointer; font-family:var(--sans);"
         onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">✏️ 実残高を修正</button>
@@ -995,18 +995,20 @@ function getBalanceAt(date) {
   return bal;
 }
 function getCashBalance() {
-  // 現金残高をエントリから積み上げ計算
-  let cash = INIT_BALANCE_CASH;
+  // 初期値：手動調整があればその値を基準に、なければ INIT_BALANCE_CASH
+  let base = INIT_BALANCE_CASH;
+  let baseDate = INIT_DATE;
+  if (balAdjCash) { base = balAdjCash.actual; baseDate = balAdjCash.date; }
+  // 基準日より後のエントリを積み上げ
+  let cash = base;
   [...entries]
-    .filter(e => e.status === 'confirmed')
+    .filter(e => e.status === 'confirmed' && e.date > baseDate)
     .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
     .forEach(e => {
       if (e.txType === 'withdraw') cash += e.amount;
       else if (e.txType === 'cash') cash -= e.amount;
       else if (e.txType === 'cash_io') cash += e.type === 'in' ? e.amount : -e.amount;
     });
-  // 手動調整値があれば上書き
-  if (balAdjCash) return balAdjCash.actual;
   return cash;
 }
 
@@ -1083,6 +1085,7 @@ function renderAll() {
   renderMiniChart();
   updateFilterDisplay();
   updateTransferNotice();
+  initDragDrop();
 }
 
 // ===== SIDEBAR PREVIEW =====
@@ -1112,6 +1115,8 @@ function previewSideBalance() {
   document.getElementById('sideBalance').textContent = fmt(bal);
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(cashBal);
+  const cashSub2 = document.getElementById('sideCashSub');
+  if (cashSub2) cashSub2.textContent = getTodayStr() + ' 時点';
   const totalEl = document.getElementById('sideTotalBalance');
   if (totalEl) totalEl.textContent = fmt(bal + cashBal);
 }
@@ -1122,8 +1127,11 @@ function renderSidebar() {
   const bal = getBalanceAt(today);
   document.getElementById('sideBalance').textContent = fmt(bal);
 
+  const cash = getCashBalance();
   const cashEl = document.getElementById('sideCashBalance');
-  if (cashEl) cashEl.textContent = fmt(getCashBalance());
+  if (cashEl) cashEl.textContent = fmt(cash);
+  const cashSub = document.getElementById('sideCashSub');
+  if (cashSub) cashSub.textContent = today + ' 時点';
 
   const totalEl = document.getElementById('sideTotalBalance');
   if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
@@ -1221,32 +1229,34 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
-  setTimeout(initDragDrop, 0);
 }
 
-// ===== DRAG & DROP =====
+// ===== DRAG & DROP (イベント委譲・1回だけ登録) =====
 let dragSrcId = null;
 
 function initDragDrop() {
-  const tbody = document.getElementById('tableBody');
-  if (!tbody) return;
+  // table全体にイベント委譲で1回だけ登録
+  const wrap = document.getElementById('tableBody').parentElement;
+  if (wrap._dragInit) return; // 重複防止
+  wrap._dragInit = true;
 
-  tbody.addEventListener('dragstart', e => {
+  wrap.addEventListener('dragstart', e => {
     const tr = e.target.closest('tr[data-id]');
     if (!tr) return;
     dragSrcId = parseInt(tr.dataset.id);
-    tr.classList.add('dragging');
+    setTimeout(() => tr.classList.add('dragging'), 0);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(dragSrcId));
   });
 
-  tbody.addEventListener('dragend', e => {
-    document.querySelectorAll('tr.dragging').forEach(r => r.classList.remove('dragging'));
-    document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+  wrap.addEventListener('dragend', () => {
+    document.querySelectorAll('tr.dragging, tr.drag-over').forEach(r => {
+      r.classList.remove('dragging', 'drag-over');
+    });
   });
 
-  tbody.addEventListener('dragover', e => {
+  wrap.addEventListener('dragover', e => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
     const tr = e.target.closest('tr[data-id]');
     document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
     if (tr && parseInt(tr.dataset.id) !== dragSrcId) {
@@ -1254,33 +1264,33 @@ function initDragDrop() {
     }
   });
 
-  tbody.addEventListener('drop', async e => {
+  wrap.addEventListener('drop', async e => {
     e.preventDefault();
+    document.querySelectorAll('tr.dragging, tr.drag-over').forEach(r => {
+      r.classList.remove('dragging', 'drag-over');
+    });
     const tr = e.target.closest('tr[data-id]');
     if (!tr) return;
     const targetId = parseInt(tr.dataset.id);
-    if (dragSrcId === null || dragSrcId === targetId) return;
+    if (!dragSrcId || dragSrcId === targetId) return;
 
     const src    = entries.find(x => x.id === dragSrcId);
     const target = entries.find(x => x.id === targetId);
+    dragSrcId = null;
     if (!src || !target) return;
 
-    // 同日のみ並び替え可能
     if (src.date !== target.date) {
       showToast('同じ日付の取引のみ並び替えできます');
       return;
     }
 
-    // entries配列内でのインデックスを入れ替え
     const si = entries.indexOf(src);
     const ti = entries.indexOf(target);
     entries.splice(si, 1);
     entries.splice(ti, 0, src);
 
-    dragSrcId = null;
     await save();
     renderTable();
-    initDragDrop();
     showToast('並び替えました');
   });
 }
