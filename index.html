@@ -1191,32 +1191,34 @@ function renderTable() {
 
   let list = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id);
 
-  // Compute running balance for ALL confirmed entries (chronological)
-  const balMap = {};
-  let runBal = INIT_BALANCE_BANK;
-  let runDate = INIT_DATE;
-  if (balAdjBank) { runBal = balAdjBank.actual; runDate = balAdjBank.date; }
-  list.filter(e => e.status === 'confirmed' && e.date >= INIT_DATE && e.txType !== 'cash' && e.txType !== 'cash_io') // withdraw・transfer は口座残高に計上
-      .forEach(e => {
-        runBal += e.type === 'in' ? e.amount : -e.amount;
-        balMap[e.id] = runBal;
-      });
-
-  // 現金残高スナップショット（getCashBalance と同じロジックで統一）
+  // 全エントリを時系列処理：口座残高・現金残高を同時にスナップショット
+  const balMap  = {};
   const cashMap = {};
-  // balAdjCash があればその日付・金額を基準に、なければ INIT_BALANCE_CASH
-  let cashBase = INIT_BALANCE_CASH;
-  let cashBaseDate = INIT_DATE;
-  if (balAdjCash) { cashBase = balAdjCash.actual; cashBaseDate = balAdjCash.date; }
-  let tmpCash = cashBase;
+
+  // 初期値セット
+  let runBal  = balAdjBank ? balAdjBank.actual  : INIT_BALANCE_BANK;
+  let runCash = balAdjCash ? balAdjCash.actual  : INIT_BALANCE_CASH;
+  let bankBase = balAdjBank ? balAdjBank.date : INIT_DATE;
+  let cashBase2 = balAdjCash ? balAdjCash.date : INIT_DATE;
+
+  // 全エントリを時系列で処理してスナップショット記録
   [...entries]
-    .filter(e => e.status === 'confirmed' && e.date > cashBaseDate)
+    .filter(e => e.status === 'confirmed')
     .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
     .forEach(e => {
-      if (e.txType === 'withdraw') tmpCash += e.amount;
-      else if (e.txType === 'cash') tmpCash -= e.amount;
-      else if (e.txType === 'cash_io') tmpCash += e.type === 'in' ? e.amount : -e.amount;
-      cashMap[e.id] = tmpCash;
+      // 口座残高に影響する取引（bank・withdraw・transfer）
+      if (e.txType !== 'cash' && e.txType !== 'cash_io' && e.date > bankBase) {
+        runBal += e.type === 'in' ? e.amount : -e.amount;
+      }
+      // 現金残高に影響する取引
+      if (e.date > cashBase2) {
+        if (e.txType === 'withdraw')      runCash += e.amount;
+        else if (e.txType === 'cash')     runCash -= e.amount;
+        else if (e.txType === 'cash_io')  runCash += e.type === 'in' ? e.amount : -e.amount;
+      }
+      // 全行にスナップショットを記録
+      balMap[e.id]  = runBal;
+      cashMap[e.id] = runCash;
     });
 
   // Filter for display
@@ -1260,8 +1262,8 @@ function renderTable() {
       <td style="font-size:11px;color:var(--text3);">${e.category||''}</td>
       <td class="text-right mono">${e.type==='in'  ? '<span class="pos-val">+'+fmtNum(e.amount)+'</span>' : '<span class="muted">―</span>'}</td>
       <td class="text-right mono">${e.type==='out' ? '<span class="neg-val">'+fmtNum(e.amount)+'</span>'  : '<span class="muted">―</span>'}</td>
-      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${cashMap[e.id]!=null ? fmtNum(cashMap[e.id]) : '―'}</td>
-      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io')?'muted':balCls}">${(e.txType==='cash'||e.txType==='cash_io')?'―':(bal!=null?balStr:'―')}</td>
+      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${cashMap[e.id]!=null ? fmtNum(cashMap[e.id]) : fmtNum(runCash||INIT_BALANCE_CASH)}</td>
+      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io')?'muted':balCls}">${(e.txType==='cash'||e.txType==='cash_io')?'―':(balMap[e.id]!=null?fmtNum(balMap[e.id]):'―')}</td>
       <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
       <td>
         <div class="edit-actions">
