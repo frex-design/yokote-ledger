@@ -1066,6 +1066,59 @@ function renderSummary() {
   const sg = document.getElementById('summaryGrid'); if(sg) sg.innerHTML = html;
 }
 
+// ===== RENDER ALL =====
+function renderAll() {
+  renderSidebar();
+  renderTable();
+  renderMiniChart();
+  updateFilterDisplay();
+  updateTransferNotice();
+}
+
+// ===== SIDEBAR PREVIEW =====
+function previewSideBalance() {
+  const today = getTodayStr();
+  const mode = currentMode;
+  const inputAmount = id => parseInt((document.getElementById(id)||{}).value||0)||0;
+
+  let previewBankDelta = 0;
+  let previewCashDelta = 0;
+  if (mode === 'withdraw') {
+    const a = inputAmount('withdrawAmount');
+    previewBankDelta = -a; previewCashDelta = a;
+  } else if (mode === 'transfer') {
+    previewBankDelta = inputAmount('transferAmount');
+  } else if (mode === 'cash') {
+    previewCashDelta = -inputAmount('cashAmount');
+  } else if (mode === 'bank') {
+    const t = (document.getElementById('entryType')||{}).value;
+    const a = inputAmount('entryAmount');
+    previewCashDelta = t === 'in' ? a : -a;
+  }
+
+  const bal     = getBalanceAt(today) + previewBankDelta;
+  const cashBal = getCashBalance()    + previewCashDelta;
+
+  document.getElementById('sideBalance').textContent = fmt(bal);
+  const cashEl = document.getElementById('sideCashBalance');
+  if (cashEl) cashEl.textContent = fmt(cashBal);
+  const totalEl = document.getElementById('sideTotalBalance');
+  if (totalEl) totalEl.textContent = fmt(bal + cashBal);
+}
+
+// ===== SIDEBAR =====
+function renderSidebar() {
+  const today = getTodayStr();
+  const bal = getBalanceAt(today);
+  document.getElementById('sideBalance').textContent = fmt(bal);
+
+  const cashEl = document.getElementById('sideCashBalance');
+  if (cashEl) cashEl.textContent = fmt(getCashBalance());
+
+  const totalEl = document.getElementById('sideTotalBalance');
+  if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
+}
+
 // ===== TABLE =====
 function renderTable() {
   const statusF = 'all'; // 区分フィルター廃止
