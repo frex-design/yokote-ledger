@@ -1749,9 +1749,9 @@ function buildCal() {
   const startDow = first.getDay();
   const days = ['日','月','火','水','木','金','土'];
   let html = `<div class="custom-cal-header">
-    <button class="custom-cal-nav" onclick="shiftCal(-1)">&#8249;</button>
+    <button class="custom-cal-nav" onclick="event.stopPropagation();shiftCal(-1)">&#8249;</button>
     <span class="custom-cal-title">${calYear}年${calMonth+1}月</span>
-    <button class="custom-cal-nav" onclick="shiftCal(1)">&#8250;</button>
+    <button class="custom-cal-nav" onclick="event.stopPropagation();shiftCal(1)">&#8250;</button>
   </div><div class="custom-cal-grid">`;
   days.forEach(d => html += `<div class="custom-cal-dow">${d}</div>`);
   for (let i=0;i<startDow;i++) html += `<button class="custom-cal-day other-month"></button>`;
@@ -1768,7 +1768,14 @@ function buildCal() {
   html += '</div>';
   cal.innerHTML = html;
 }
-function shiftCal(n) { calMonth += n; if(calMonth<0){calMonth=11;calYear--;}else if(calMonth>11){calMonth=0;calYear++;} buildCal(); }
+function shiftCal(n) {
+  calMonth += n;
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0;  calYear++; }
+  buildCal();
+  const cal = document.getElementById('cal_entry');
+  if (cal) cal.style.display = 'block';
+}
 function pickCalDay(ds) { setEntryDate(ds); closeCal(); }
 
 // ===== MINI CHART =====
