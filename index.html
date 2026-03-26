@@ -1002,14 +1002,25 @@ function getCashBalance() {
 
 // ===== INIT =====
 async function init() {
-  await load();
   const today = new Date();
   document.getElementById('todayLabel').textContent =
     today.toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'short'});
-  // Quick stats
-  const allC = entries.filter(e => e.status === 'confirmed');
-  const allP = entries.filter(e => e.status === 'plan');
-
+  const ym = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  filterYM = ym; filterYMMode = 'month';
+  miniMonth = ym;
+  document.getElementById('filterMonthHidden').value = ym;
+  setEntryDate(getTodayStr());
+  // まずローカルデータで即時描画
+  loadLocal();
+  renderAll();
+  // その後Supabaseから非同期取得して再描画
+  try {
+    await load();
+    renderAll();
+  } catch(e) {
+    console.warn('Supabase初期化エラー:', e);
+    showSyncStatus('⚠ オフライン', false, true);
+  }
 }
 
 // ===== SUMMARY CARDS =====
