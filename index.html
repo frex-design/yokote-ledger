@@ -179,7 +179,8 @@
   /* ===== 取引種別バッジ ===== */
   .badge-bank     { background:rgba(230,126,34,0.12); color:var(--accent); }
   .badge-cash-out { background:rgba(22,163,74,0.12);  color:var(--green); }
-  .badge-withdraw { background:rgba(13,148,136,0.12); color:var(--teal); }
+  .badge-cash-io  { background:rgba(37,99,235,0.10);  color:#2563eb; }
+  .badge-withdraw { background:rgba(230,126,34,0.12); color:var(--accent); }
   .badge-transfer { background:rgba(124,58,237,0.10); color:#7c3aed; }
   .row-cash td   { background:rgba(22,163,74,0.025); }
   .row-withdraw td{ background:rgba(13,148,136,0.025); }
@@ -1099,9 +1100,9 @@ function renderTable() {
       bank_in:   '<span class="badge badge-bank">口座 入金</span>',
       bank_out:  '<span class="badge badge-out">口座 出金</span>',
       cash:      '<span class="badge badge-cash-out">現金 出金</span>',
-      cash_io_in: '<span class="badge badge-cash-out">現金 入金</span>',
-      cash_io_out:'<span class="badge badge-cash-out">現金 出金</span>',
-      withdraw:  '<span class="badge badge-withdraw">現金引出</span>',
+      cash_io_in: '<span class="badge badge-cash-io">現金 入金</span>',
+      cash_io_out:'<span class="badge badge-cash-io">現金 出金</span>',
+      withdraw:  '<span class="badge badge-bank">現金引出</span>',
       transfer:  '<span class="badge badge-transfer">資金移動</span>',
     };
     const txKey = e.txType === 'cash' ? 'cash' : e.txType === 'cash_io' ? (e.type==='in'?'cash_io_in':'cash_io_out') : e.txType === 'withdraw' ? 'withdraw' : e.txType === 'transfer' ? 'transfer' : (e.type === 'in' ? 'bank_in' : 'bank_out');
