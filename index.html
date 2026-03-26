@@ -959,12 +959,85 @@ async function load() {
       if (m.key === 'balAdjBank' && m.value) balAdjBank = JSON.parse(m.value);
       if (m.key === 'balAdjCash' && m.value) balAdjCash = JSON.parse(m.value);
     });
+
+    // ===== 本社からの自動送信データを取込 =====
+    await importFromHonsha();
+
     // ローカルも更新
     saveLocal();
     showSyncStatus('✓ 同期完了', true);
   } catch(err) {
     console.warn('Supabase読込失敗（ローカルデータを使用）:', err);
     showSyncStatus('⚠ オフライン', false, true);
+  }
+}
+
+// 本社帳簿のentries_yokoteテーブルから未取込データを取込
+async function importFromHonsha() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/entries_yokote?order=id.asc&limit=10000`, {
+      headers: SUPABASE_HEADERS
+    });
+    if (!res.ok) return;
+    const yokoteRows = await res.json();
+    if (!yokoteRows || yokoteRows.length === 0) return;
+
+    // 既に取込済みのentries_yokote IDをledger_metaから取得
+    const metaRes = await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.imported_yokote_ids&select=value`, {
+      headers: SUPABASE_HEADERS
+    });
+    const metaData = await metaRes.json();
+    const importedIds = new Set(
+      metaData.length > 0 && metaData[0].value
+        ? JSON.parse(metaData[0].value)
+        : []
+    );
+
+    // 未取込のものだけ処理
+    const newRows = yokoteRows.filter(r => !importedIds.has(r.id));
+    if (newRows.length === 0) return;
+
+    // ledger_entriesに追加
+    let added = 0;
+    for (const r of newRows) {
+      const newId = nextId++;
+      const sortOrder = Math.max(0, ...entries.filter(x => x.date === r.date).map(x => x.sortOrder || 0)) + 10;
+      entries.push({
+        id: newId,
+        date: r.date,
+        type: 'in',
+        txType: 'transfer',
+        status: r.status || 'confirmed',
+        amount: Number(r.amount),
+        partner: '秋田銀行（本社）',
+        desc: '本社からの資金移動',
+        category: '資金移動',
+        note: '',
+        sortOrder: sortOrder,
+      });
+      importedIds.add(r.id);
+      added++;
+    }
+
+    if (added > 0) {
+      // ledger_entriesに保存
+      await save();
+
+      // 取込済みIDリストをledger_metaに保存
+      const idList = JSON.stringify(Array.from(importedIds));
+      await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.imported_yokote_ids`, {
+        method: 'DELETE', headers: SUPABASE_HEADERS
+      });
+      await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta`, {
+        method: 'POST',
+        headers: { ...SUPABASE_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify([{ key: 'imported_yokote_ids', value: idList }])
+      });
+
+      showToast(`本社から ${added}件 の資金移動を取込みました`);
+    }
+  } catch(err) {
+    console.warn('entries_yokote取込エラー:', err);
   }
 }
 
