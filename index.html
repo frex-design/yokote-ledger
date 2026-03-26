@@ -1161,21 +1161,22 @@ function renderTable() {
         balMap[e.id] = runBal;
       });
 
-  // 現金残高スナップショット（全エントリ時系列順）
+  // 現金残高スナップショット（getCashBalance と同じロジックで統一）
   const cashMap = {};
-  let runCash = INIT_BALANCE_CASH;
-  if (balAdjCash) runCash = balAdjCash.actual;
-  // 再計算: 全現金系エントリを時系列で適用
-  const allSorted = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
-    .filter(e => e.status === 'confirmed');
-  // INIT_BALANCE_CASH から積み上げ
-  let tmpCash = INIT_BALANCE_CASH;
-  allSorted.forEach(e => {
-    if (e.txType === 'withdraw') tmpCash += e.amount;
-    else if (e.txType === 'cash') tmpCash -= e.amount;
-    else if (e.txType === 'cash_io') tmpCash += e.type === 'in' ? e.amount : -e.amount;
-    cashMap[e.id] = tmpCash;
-  });
+  // balAdjCash があればその日付・金額を基準に、なければ INIT_BALANCE_CASH
+  let cashBase = INIT_BALANCE_CASH;
+  let cashBaseDate = INIT_DATE;
+  if (balAdjCash) { cashBase = balAdjCash.actual; cashBaseDate = balAdjCash.date; }
+  let tmpCash = cashBase;
+  [...entries]
+    .filter(e => e.status === 'confirmed' && e.date > cashBaseDate)
+    .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
+    .forEach(e => {
+      if (e.txType === 'withdraw') tmpCash += e.amount;
+      else if (e.txType === 'cash') tmpCash -= e.amount;
+      else if (e.txType === 'cash_io') tmpCash += e.type === 'in' ? e.amount : -e.amount;
+      cashMap[e.id] = tmpCash;
+    });
 
   // Filter for display
   if (pfx) list = list.filter(e => e.date.startsWith(pfx));
