@@ -818,7 +818,7 @@ const SUPABASE_HEADERS = {
 const ACCOUNT_ID       = 'akita_yokote';
 const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
 const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
-const INIT_DATE         = '2026-03-01'; // この日より後のエントリを計上
+const INIT_DATE         = '2026-02-28'; // この日より後のエントリを計上
 const STORAGE_KEY       = 'fd_yokote_ledger_v1';
 const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
 const ADJ_KEY_CASH      = 'fd_yokote_adj_cash_v1';
@@ -915,7 +915,7 @@ async function load() {
         id: r.id,
         date: r.date,
         type: r.type,
-        txType: r.tx_type,
+        txType: r.tx_type || 'bank',
         status: r.status,
         amount: r.amount,
         partner: r.partner || '',
@@ -999,7 +999,7 @@ function getBalanceAt(date) {
   if (balAdjBank && balAdjBank.date <= date) { base = balAdjBank.actual; baseDate = balAdjBank.date; }
   let bal = base;
   entries
-    .filter(e => e.status === 'confirmed' && e.date > baseDate && e.date <= date
+    .filter(e => e.status === 'confirmed' && e.date >= INIT_DATE && e.date <= date
               && e.txType !== 'cash' && e.txType !== 'cash_io')
     .sort((a,b) => a.date.localeCompare(b.date))
     .forEach(e => { bal += e.type === 'in' ? e.amount : -e.amount; });
@@ -1186,7 +1186,7 @@ function renderTable() {
   let runBal = INIT_BALANCE_BANK;
   let runDate = INIT_DATE;
   if (balAdjBank) { runBal = balAdjBank.actual; runDate = balAdjBank.date; }
-  list.filter(e => e.status === 'confirmed' && e.date > runDate && e.txType !== 'cash' && e.txType !== 'cash_io') // withdraw・transfer は口座残高に計上
+  list.filter(e => e.status === 'confirmed' && e.date >= INIT_DATE && e.txType !== 'cash' && e.txType !== 'cash_io') // withdraw・transfer は口座残高に計上
       .forEach(e => {
         runBal += e.type === 'in' ? e.amount : -e.amount;
         balMap[e.id] = runBal;
