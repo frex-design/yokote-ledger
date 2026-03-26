@@ -995,9 +995,19 @@ function getBalanceAt(date) {
   return bal;
 }
 function getCashBalance() {
-  // 現金残高（入出金帳簿に連動しない独立管理）
+  // 現金残高をエントリから積み上げ計算
+  let cash = INIT_BALANCE_CASH;
+  [...entries]
+    .filter(e => e.status === 'confirmed')
+    .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
+    .forEach(e => {
+      if (e.txType === 'withdraw') cash += e.amount;
+      else if (e.txType === 'cash') cash -= e.amount;
+      else if (e.txType === 'cash_io') cash += e.type === 'in' ? e.amount : -e.amount;
+    });
+  // 手動調整値があれば上書き
   if (balAdjCash) return balAdjCash.actual;
-  return INIT_BALANCE_CASH;
+  return cash;
 }
 
 // ===== INIT =====
