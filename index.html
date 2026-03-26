@@ -1782,39 +1782,33 @@ function renderMiniChart() {
   const [y,m] = miniMonth.split('-').map(Number);
   const days = new Date(y, m, 0).getDate();
   const labels = [], bankData = [], cashData = [];
+
+  // 口座残高：getBalanceAt と同じロジックで日次計算
+  // 現金残高：balAdjCash 基点から積み上げ（getCashBalance と同じロジック）
+  const cashBaseDate = balAdjCash ? balAdjCash.date : INIT_DATE;
+  const cashBaseVal  = balAdjCash ? balAdjCash.actual : INIT_BALANCE_CASH;
+
+  // 全エントリを時系列で並べる
+  const sortedEntries = [...entries]
+    .filter(e => e.status === 'confirmed')
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id));
+
+  // 月の各日の残高を計算
   for (let d=1; d<=days; d++) {
     const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     labels.push(d + '日');
     bankData.push(getBalanceAt(ds));
-    cashData.push(getCashBalance()); // 現金は取引ごとに変わるので当日以降は最新値
-  }
-  // 現金残高は日次推移を計算
-  const cashByDay = {};
-  let cashRun = INIT_BALANCE_CASH;
-  if (balAdjCash) cashRun = balAdjCash.actual;
-  // 現金系エントリを日付順に並べて各日の末尾残高を算出
-  const cashEntries = [...entries]
-    .filter(e => e.status === 'confirmed' && e.txType !== null)
-    .sort((a,b) => a.date.localeCompare(b.date));
-  // 月の各日の現金残高スナップショット
-  let tmpCash = INIT_BALANCE_CASH;
-  // まず月初より前の全現金系取引を適用
-  const pfx = `${y}-${String(m).padStart(2,'0')}`;
-  cashEntries.filter(e => e.date < pfx + '-01').forEach(e => {
-    if (e.txType === 'withdraw') tmpCash += e.amount;
-    else if (e.txType === 'cash' || e.txType === 'cash_io') {
-      tmpCash += e.type === 'in' ? e.amount : -e.amount;
-    }
-  });
-  for (let d=1; d<=days; d++) {
-    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    cashEntries.filter(e => e.date === ds).forEach(e => {
-      if (e.txType === 'withdraw') tmpCash += e.amount;
-      else if (e.txType === 'cash' || e.txType === 'cash_io') {
-        tmpCash += e.type === 'in' ? e.amount : -e.amount;
-      }
-    });
-    cashData[d-1] = tmpCash;
+
+    // 現金残高：基点から ds までのエントリを積み上げ
+    let tmpCash = cashBaseVal;
+    sortedEntries
+      .filter(e => e.date > cashBaseDate && e.date <= ds)
+      .forEach(e => {
+        if (e.txType === 'withdraw')     tmpCash += e.amount;
+        else if (e.txType === 'cash')    tmpCash -= e.amount;
+        else if (e.txType === 'cash_io') tmpCash += e.type === 'in' ? e.amount : -e.amount;
+      });
+    cashData.push(tmpCash);
   }
   const endBank = bankData[bankData.length-1];
   const endCash = cashData[cashData.length-1];
