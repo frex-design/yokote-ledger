@@ -835,7 +835,7 @@ const SUPABASE_HEADERS = {
 };
 const ACCOUNT_ID       = 'akita_yokote';
 const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
-const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
+const INIT_BALANCE_CASH = 4864;   // 現金（横手）初期残高
 const INIT_DATE         = '2026-02-28'; // この日より後のエントリを計上
 const STORAGE_KEY       = 'fd_yokote_ledger_v1';
 const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
@@ -1055,6 +1055,11 @@ async function init() {
   setEntryDate(getTodayStr());
   // まずローカルデータで即時描画
   loadLocal();
+  // 現金残高の基点が未設定の場合はデフォルト値をセット
+  if (!balAdjCash) {
+    balAdjCash = { date: '2026-03-01', actual: 4864 };
+    saveAdjCash();
+  }
   renderAll();
   // その後Supabaseから非同期取得して再描画
   try {
