@@ -1109,12 +1109,12 @@ function renderSummary() {
 
 // ===== RENDER ALL =====
 function renderAll() {
-  renderSidebar();
-  renderTable();
-  renderMiniChart();
-  updateFilterDisplay();
-  updateTransferNotice();
-  initDragDrop();
+  try { renderSidebar(); } catch(e) { console.error('renderSidebar:', e); }
+  try { renderTable(); } catch(e) { console.error('renderTable:', e); }
+  try { renderMiniChart(); } catch(e) { console.error('renderMiniChart:', e); }
+  try { updateFilterDisplay(); } catch(e) { console.error('updateFilterDisplay:', e); }
+  try { updateTransferNotice(); } catch(e) { console.error('updateTransferNotice:', e); }
+  try { initDragDrop(); } catch(e) { console.error('initDragDrop:', e); }
 }
 
 // ===== SIDEBAR PREVIEW =====
@@ -1134,7 +1134,7 @@ function previewSideBalance() {
     previewCashDelta = -inputAmount('cashAmount');
   } else if (mode === 'bank') {
     const t = (document.getElementById('entryType')||{}).value;
-    const a = inputAmount('entryAmount');
+    var a = inputAmount('entryAmount');
     previewCashDelta = t === 'in' ? a : -a;
   }
 
@@ -1458,15 +1458,15 @@ async function submitEntry(mode) {
 
   } else if (mode === 'cash') {
     // 現金 出金
-    const amount = parseInt(document.getElementById('cashAmount').value) || 0;
-    const partner= document.getElementById('cashPartner').value.trim();
-    const desc   = document.getElementById('cashDesc').value.trim();
-    const cat    = document.getElementById('cashCategory').value;
-    const note   = document.getElementById('cashNote').value.trim();
+    var amount = parseInt(document.getElementById('cashAmount').value) || 0;
+    var partner= document.getElementById('cashPartner').value.trim();
+    var desc   = document.getElementById('cashDesc').value.trim();
+    var cat    = document.getElementById('cashCategory').value;
+    var note   = document.getElementById('cashNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
     entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' });
     // 現金残高を減算
-    const newCash = getCashBalance() - amount;
+    var newCash = getCashBalance() - amount;
     balAdjCash = { date, actual: newCash };
     saveAdjCash();
     document.getElementById('cashAmount').value = '';
@@ -1477,13 +1477,13 @@ async function submitEntry(mode) {
 
   } else if (mode === 'withdraw') {
     // 現金引出：口座から出金 + 現金に加算
-    const amount = parseInt(document.getElementById('withdrawAmount').value) || 0;
-    const desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
+    var amount = parseInt(document.getElementById('withdrawAmount').value) || 0;
+    var desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
     if (amount <= 0) { showToast('引出金額を入力してください'); return; }
     // 口座から出金エントリ
     entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' });
     // 現金残高を加算
-    const newCash = getCashBalance() + amount;
+    var newCash = getCashBalance() + amount;
     balAdjCash = { date, actual: newCash };
     saveAdjCash();
     document.getElementById('withdrawAmount').value = '';
@@ -1491,8 +1491,8 @@ async function submitEntry(mode) {
 
   } else if (mode === 'transfer') {
     // 資金移動（本社→横手）：口座に入金
-    const amount = parseInt(document.getElementById('transferAmount').value) || 0;
-    const desc   = document.getElementById('transferDesc').value.trim() || '本社からの資金移動';
+    var amount = parseInt(document.getElementById('transferAmount').value) || 0;
+    var desc   = document.getElementById('transferDesc').value.trim() || '本社からの資金移動';
     if (amount <= 0) { showToast('金額を入力してください'); return; }
     entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' });
     document.getElementById('transferAmount').value = '';
@@ -2134,8 +2134,7 @@ function showToast(msg) {
 // ===== START =====
 (function() {
   document.getElementById('loginOverlay').style.display = 'none';
-  init();
+  init().catch(e => console.error('init error:', e));
 })();
 </script>
 </body>
-</html>
