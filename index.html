@@ -1144,8 +1144,8 @@ function previewSideBalance() {
   document.getElementById('sideBalance').textContent = fmt(bal);
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(cashBal);
-  const cashSub2 = document.getElementById('sideCashSub');
-  if (cashSub2) cashSub2.textContent = getTodayStr() + ' 時点';
+  const _cashSubA = document.getElementById('sideCashSub');
+  if (_cashSubA) _cashSubA.textContent = getTodayStr() + ' 時点';
   const totalEl = document.getElementById('sideTotalBalance');
   if (totalEl) totalEl.textContent = fmt(bal + cashBal);
 }
@@ -1159,8 +1159,8 @@ function renderSidebar() {
   const cash = getCashBalance();
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(cash);
-  const cashSub = document.getElementById('sideCashSub');
-  if (cashSub) cashSub.textContent = today + ' 時点';
+  const _cashSubB = document.getElementById('sideCashSub');
+  if (_cashSubB) _cashSubB.textContent = today + ' 時点';
 
   const totalEl = document.getElementById('sideTotalBalance');
   if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
@@ -1170,9 +1170,9 @@ function renderSidebar() {
   if (bankSub) bankSub.textContent = balAdjBank
     ? `基点: ${balAdjBank.date} / ${fmt(balAdjBank.actual)}`
     : `初期値: ${fmt(INIT_BALANCE_BANK)}`;
-  const cashSub = document.getElementById('adj_cash_sub');
-  if (cashSub) {
-    cashSub.textContent = balAdjCash
+  const _cashSubC = document.getElementById('adj_cash_sub');
+  if (_cashSubC) {
+    _cashSubC.textContent = balAdjCash
       ? `基点: ${balAdjCash.date} / ${fmt(balAdjCash.actual)}`
       : `初期値: ${fmt(INIT_BALANCE_CASH)}`;
   }
