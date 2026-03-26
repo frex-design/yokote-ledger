@@ -1244,11 +1244,19 @@ function renderTable() {
     return;
   }
 
+  // フィルター後: 前行の残高を引き継ぎ「―」を出さない
+  let prevBal  = balAdjBank ? balAdjBank.actual : INIT_BALANCE_BANK;
+  let prevCash = balAdjCash ? balAdjCash.actual : INIT_BALANCE_CASH;
+
   body.innerHTML = list.map(e => {
     if (editingId === e.id) return buildInlineEdit(e);
-    const bal = balMap[e.id];
-    const balStr = e.status === 'confirmed' && bal != null ? fmtNum(bal) : '―';
-    const balCls = e.status === 'confirmed' && bal != null ? (bal >= 0 ? 'pos-val' : 'neg-val') : 'muted';
+    // balMap/cashMap に値があればそれを使い、なければ前行の値を引き継ぐ
+    const bal      = balMap[e.id]  != null ? balMap[e.id]  : prevBal;
+    const cashVal  = cashMap[e.id] != null ? cashMap[e.id] : prevCash;
+    prevBal  = bal;
+    prevCash = cashVal;
+    const balStr = fmtNum(bal);
+    const balCls = bal >= 0 ? 'pos-val' : 'neg-val';
     const txBadge = {
       bank_in:   '<span class="badge badge-bank">口座 入金</span>',
       bank_out:  '<span class="badge badge-out">口座 出金</span>',
@@ -1269,8 +1277,8 @@ function renderTable() {
       <td style="font-size:11px;color:var(--text3);">${e.category||''}</td>
       <td class="text-right mono">${e.type==='in'  ? '<span class="pos-val">+'+fmtNum(e.amount)+'</span>' : '<span class="muted">―</span>'}</td>
       <td class="text-right mono">${e.type==='out' ? '<span class="neg-val">'+fmtNum(e.amount)+'</span>'  : '<span class="muted">―</span>'}</td>
-      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${cashMap[e.id]!=null ? fmtNum(cashMap[e.id]) : fmtNum(runCash||INIT_BALANCE_CASH)}</td>
-      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io')?'muted':balCls}">${(e.txType==='cash'||e.txType==='cash_io')?'―':(balMap[e.id]!=null?fmtNum(balMap[e.id]):'―')}</td>
+      <td class="text-right mono ${(e.txType==='cash'||e.txType==='cash_io'||e.txType==='withdraw')?'pos-val':'muted'}">${fmtNum(cashVal)}</td>
+      <td class="text-right mono ${balCls}">${fmtNum(bal)}</td>
       <td style="font-size:11px;color:var(--text3);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.note||''}</td>
       <td>
         <div class="edit-actions">
