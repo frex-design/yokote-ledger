@@ -321,6 +321,7 @@
     <span class="today-badge" id="todayLabel"></span>
     <button class="btn btn-ghost btn-sm" onclick="openCsvExport()">📥 CSV出力</button>
     <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 印刷</button>
+    <button class="btn btn-ghost btn-sm" onclick="openBalanceSetting()">⚙️ 設定</button>
   </div>
 </header>
 
@@ -345,18 +346,7 @@
         <div class="balance-hero-amount" id="sideBalance">―</div>
         <div class="balance-hero-sub">本日時点</div>
       </div>
-      <button onclick="toggleBalanceAdjust('bank')" style="margin-top:10px; width:100%; padding:5px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:11px; color:var(--text3); cursor:pointer; font-family:var(--sans);"
-        onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">✏️ 実残高を修正</button>
-      <div id="balanceAdjustForm_bank" style="display:none; margin-top:10px; padding:10px; background:var(--accent-subtle); border:1px solid var(--accent-border); border-radius:6px;">
-        <div style="font-size:11px; color:var(--text2); margin-bottom:8px; line-height:1.5;">通帳の実残高を入力してください。<br><span style="color:var(--text3);">新しい基準残高として保存します。</span></div>
-        <div style="font-size:11px; color:var(--text3); margin-bottom:4px;">計算値: <span id="adjCalcVal_bank" style="font-family:var(--mono);"></span></div>
-        <input type="number" id="adjInput_bank" placeholder="実残高を入力" style="width:100%; padding:5px 8px; border:1px solid var(--border2); border-radius:4px; font-size:12px; font-family:var(--mono); color:var(--text); background:#fff; outline:none;"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <button onclick="saveBalanceAdjust('bank')" class="btn btn-primary btn-sm" style="flex:1; font-size:11px;">保存</button>
-          <button onclick="toggleBalanceAdjust('bank')" class="btn btn-ghost btn-sm" style="font-size:11px;">閉じる</button>
-        </div>
-      </div>
+      <div id="adj_bank_sub" style="font-size:11px; color:var(--text3); margin-top:6px;"></div>
     </div>
     <!-- 現金残高 -->
     <div class="sidebar-section">
@@ -366,18 +356,7 @@
         <div class="balance-hero-amount" id="sideCashBalance">―</div>
         <div class="balance-hero-sub" id="sideCashSub">本日時点</div>
       </div>
-      <button onclick="toggleBalanceAdjust('cash')" style="margin-top:10px; width:100%; padding:5px; background:var(--bg3); border:1px solid var(--border); border-radius:5px; font-size:11px; color:var(--text3); cursor:pointer; font-family:var(--sans);"
-        onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">✏️ 実残高を修正</button>
-      <div id="balanceAdjustForm_cash" style="display:none; margin-top:10px; padding:10px; background:rgba(22,163,74,0.07); border:1px solid rgba(22,163,74,0.28); border-radius:6px;">
-        <div style="font-size:11px; color:var(--text2); margin-bottom:8px; line-height:1.5;">現金の実残高を入力してください。<br><span style="color:var(--text3);">新しい基準残高として保存します。</span></div>
-        <div style="font-size:11px; color:var(--text3); margin-bottom:4px;">計算値: <span id="adjCalcVal_cash" style="font-family:var(--mono);"></span></div>
-        <input type="number" id="adjInput_cash" placeholder="実残高を入力" style="width:100%; padding:5px 8px; border:1px solid var(--border2); border-radius:4px; font-size:12px; font-family:var(--mono); color:var(--text); background:#fff; outline:none;"
-          onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border2)'">
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <button onclick="saveBalanceAdjust('cash')" class="btn btn-primary btn-sm" style="flex:1; font-size:11px;">保存</button>
-          <button onclick="toggleBalanceAdjust('cash')" class="btn btn-ghost btn-sm" style="font-size:11px;">閉じる</button>
-        </div>
-      </div>
+      <div id="adj_cash_sub" style="font-size:11px; color:var(--text3); margin-top:6px;"></div>
     </div>
 
   </aside>
@@ -674,6 +653,56 @@
     <div style="display:flex; justify-content:flex-end; gap:8px;">
       <button class="btn btn-ghost" onclick="closeCsvExport()">キャンセル</button>
       <button class="btn btn-primary" onclick="doExportCSV()">📥 ダウンロード</button>
+    </div>
+  </div>
+</div>
+
+<!-- BALANCE SETTING MODAL -->
+<div class="modal-backdrop" id="balanceSettingModal">
+  <div class="modal-box" style="width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">⚙️ 残高基点の設定</span>
+      <button class="modal-close" onclick="closeBalanceSetting()">✕</button>
+    </div>
+    <p style="font-size:12px; color:var(--text3); margin-bottom:18px; line-height:1.6;">通帳等で確認した実残高と日付を入力してください。<br>その日付以降のエントリを積み上げて残高を計算します。</p>
+
+    <!-- 口座残高 -->
+    <div style="background:var(--accent-subtle); border:1px solid var(--accent-border); border-radius:8px; padding:16px; margin-bottom:14px;">
+      <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:12px;">🏦 秋田銀行（横手）口座残高</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+        <div class="form-group">
+          <label class="form-label">基点日付</label>
+          <input type="date" class="form-input" id="adj_bank_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">実残高（円）</label>
+          <input type="number" class="form-input" id="adj_bank_amount" placeholder="0">
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--text3);">現在の計算値: <span id="adj_bank_calc" style="font-family:var(--mono); font-weight:600; color:var(--accent);"></span></div>
+      <div id="adj_bank_current" style="font-size:11px; color:var(--text3); margin-top:3px;"></div>
+    </div>
+
+    <!-- 現金残高 -->
+    <div style="background:rgba(22,163,74,0.07); border:1px solid rgba(22,163,74,0.28); border-radius:8px; padding:16px; margin-bottom:18px;">
+      <div style="font-size:12px; font-weight:700; color:var(--green); margin-bottom:12px;">💴 現金（横手）残高</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+        <div class="form-group">
+          <label class="form-label">基点日付</label>
+          <input type="date" class="form-input" id="adj_cash_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">実残高（円）</label>
+          <input type="number" class="form-input" id="adj_cash_amount" placeholder="0">
+        </div>
+      </div>
+      <div style="font-size:11px; color:var(--text3);">現在の計算値: <span id="adj_cash_calc" style="font-family:var(--mono); font-weight:600; color:var(--green);"></span></div>
+      <div id="adj_cash_current" style="font-size:11px; color:var(--text3); margin-top:3px;"></div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button class="btn btn-ghost" onclick="closeBalanceSetting()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveBalanceSetting()">保存する</button>
     </div>
   </div>
 </div>
@@ -1135,6 +1164,18 @@ function renderSidebar() {
 
   const totalEl = document.getElementById('sideTotalBalance');
   if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
+
+  // 基点情報をサイドバーに表示
+  const bankSub = document.getElementById('adj_bank_sub');
+  if (bankSub) bankSub.textContent = balAdjBank
+    ? `基点: ${balAdjBank.date} / ${fmt(balAdjBank.actual)}`
+    : `初期値: ${fmt(INIT_BALANCE_BANK)}`;
+  const cashSub = document.getElementById('adj_cash_sub');
+  if (cashSub) {
+    cashSub.textContent = balAdjCash
+      ? `基点: ${balAdjCash.date} / ${fmt(balAdjCash.actual)}`
+      : `初期値: ${fmt(INIT_BALANCE_CASH)}`;
+  }
 }
 
 // ===== TABLE =====
@@ -1787,7 +1828,55 @@ function saveBalanceAdjust(type) {
   renderAll(); showToast('実残高を保存しました');
 }
 
+// ===== BALANCE SETTING MODAL =====
+function openBalanceSetting() {
+  const today = getTodayStr();
+  // 口座
+  document.getElementById('adj_bank_date').value   = balAdjBank ? balAdjBank.date : today;
+  document.getElementById('adj_bank_amount').value = balAdjBank ? balAdjBank.actual : '';
+  document.getElementById('adj_bank_calc').textContent = fmt(getBalanceAt(today));
+  document.getElementById('adj_bank_current').textContent = balAdjBank
+    ? `現在の基点: ${balAdjBank.date} / ${fmt(balAdjBank.actual)}`
+    : '基点未設定（初期値から計算）';
+  // 現金
+  document.getElementById('adj_cash_date').value   = balAdjCash ? balAdjCash.date : today;
+  document.getElementById('adj_cash_amount').value = balAdjCash ? balAdjCash.actual : '';
+  document.getElementById('adj_cash_calc').textContent = fmt(getCashBalance());
+  document.getElementById('adj_cash_current').textContent = balAdjCash
+    ? `現在の基点: ${balAdjCash.date} / ${fmt(balAdjCash.actual)}`
+    : '基点未設定（初期値から計算）';
+  document.getElementById('balanceSettingModal').classList.add('open');
+}
+
+function closeBalanceSetting() {
+  document.getElementById('balanceSettingModal').classList.remove('open');
+}
+
+async function saveBalanceSetting() {
+  const bankDate   = document.getElementById('adj_bank_date').value;
+  const bankAmount = parseFloat(document.getElementById('adj_bank_amount').value);
+  const cashDate   = document.getElementById('adj_cash_date').value;
+  const cashAmount = parseFloat(document.getElementById('adj_cash_amount').value);
+
+  let changed = false;
+  if (bankDate && !isNaN(bankAmount)) {
+    balAdjBank = { date: bankDate, actual: bankAmount };
+    await saveAdjBank();
+    changed = true;
+  }
+  if (cashDate && !isNaN(cashAmount)) {
+    balAdjCash = { date: cashDate, actual: cashAmount };
+    await saveAdjCash();
+    changed = true;
+  }
+  if (!changed) { showToast('変更がありません'); return; }
+  closeBalanceSetting();
+  renderAll();
+  showToast('残高基点を保存しました');
+}
+
 // ===== CSV EXPORT =====
+
 let csvExportFilter = { range:'all', month:'', year:'' };
 function openCsvExport() {
   document.getElementById('csvExportModal').classList.add('open');
