@@ -895,7 +895,8 @@ async function save() {
         partner: e.partner || '',
         desc_text: e.desc || '',
         category: e.category || '',
-        note: e.note || ''
+        note: e.note || '',
+        sort_order: e.sortOrder || e.id
       }));
       await fetch(`${SUPABASE_URL}/rest/v1/ledger_entries`, {
         method: 'POST', headers: SUPABASE_HEADERS, body: JSON.stringify(rows)
@@ -939,7 +940,8 @@ async function load() {
         partner: r.partner || '',
         desc: r.desc_text || '',
         category: r.category || '',
-        note: r.note || ''
+        note: r.note || '',
+        sortOrder: r.sort_order || r.id
       }));
     }
     // meta取得
@@ -1189,7 +1191,7 @@ function renderTable() {
   if (filterYMMode === 'month') pfx = filterYM;
   else if (filterYMMode === 'year') pfx = filterYM;
 
-  let list = [...entries].sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id);
+  let list = [...entries].sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id));
 
   // 全エントリを時系列処理：口座残高・現金残高を同時にスナップショット
   const balMap  = {};
@@ -1204,7 +1206,7 @@ function renderTable() {
   // 全エントリを時系列で処理してスナップショット記録
   [...entries]
     .filter(e => e.status === 'confirmed')
-    .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
     .forEach(e => {
       // 口座残高に影響する取引（bank・withdraw・transfer）
       if (e.txType !== 'cash' && e.txType !== 'cash_io' && e.date > bankBase) {
@@ -1346,24 +1348,44 @@ function initDragDrop() {
     const targetId = parseInt(tr.dataset.id);
     if (!dragSrcId || dragSrcId === targetId) return;
 
-    const src    = entries.find(x => x.id === dragSrcId);
-    const target = entries.find(x => x.id === targetId);
+    const srcEntry    = entries.find(x => x.id === dragSrcId);
+    const targetEntry = entries.find(x => x.id === targetId);
     dragSrcId = null;
-    if (!src || !target) return;
+    if (!srcEntry || !targetEntry) return;
 
-    if (src.date !== target.date) {
+    if (srcEntry.date !== targetEntry.date) {
       showToast('同じ日付の取引のみ並び替えできます');
       return;
     }
 
-    const si = entries.indexOf(src);
-    const ti = entries.indexOf(target);
-    entries.splice(si, 1);
-    entries.splice(ti, 0, src);
+    // 同日エントリを sortOrder 順で取得
+    const sameDayEntries = entries
+      .filter(x => x.date === srcEntry.date)
+      .sort((a,b) => (a.sortOrder||a.id) - (b.sortOrder||b.id));
 
-    await save();
+    // src を target の位置に挿入
+    const srcIdx = sameDayEntries.findIndex(x => x.id === srcEntry.id);
+    const tgtIdx = sameDayEntries.findIndex(x => x.id === targetEntry.id);
+    sameDayEntries.splice(srcIdx, 1);
+    sameDayEntries.splice(tgtIdx, 0, srcEntry);
+
+    // sortOrder を 10刻みで再割り当て（隙間を作って挿入しやすくする）
+    sameDayEntries.forEach((entry, idx) => {
+      entry.sortOrder = (idx + 1) * 10;
+    });
+
+    // ローカル保存 → UI更新 → Supabase保存
+    saveLocal();
     renderTable();
-    showToast('並び替えました');
+    showToast('並び替えました（保存中…）');
+
+    try {
+      await save();
+      showToast('並び替えを保存しました');
+    } catch(err) {
+      showToast('⚠ 保存に失敗しました。再試行してください');
+      console.error('drag save error:', err);
+    }
   });
 }
 
@@ -1450,7 +1472,8 @@ async function submitEntry(mode) {
       entries[idx] = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
       cancelEdit();
     } else {
-      entries.push({ id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' });
+      var _soCashIo = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+      entries.push({ id: uid(), date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io', sortOrder:_soCashIo });
     }
     document.getElementById('entryAmount').value = '';
     if(document.getElementById('entryPartner')) document.getElementById('entryPartner').value = '';
@@ -1466,7 +1489,8 @@ async function submitEntry(mode) {
     var cat    = document.getElementById('cashCategory').value;
     var note   = document.getElementById('cashNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash' });
+    var _soCash = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash', sortOrder:_soCash });
     // 現金残高を減算
     var newCash = getCashBalance() - amount;
     balAdjCash = { date, actual: newCash };
@@ -1483,7 +1507,8 @@ async function submitEntry(mode) {
     var desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
     if (amount <= 0) { showToast('引出金額を入力してください'); return; }
     // 口座から出金エントリ
-    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw' });
+    var _soWith = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw', sortOrder:_soWith });
     // 現金残高を加算
     var newCash = getCashBalance() + amount;
     balAdjCash = { date, actual: newCash };
@@ -1496,7 +1521,8 @@ async function submitEntry(mode) {
     var amount = parseInt(document.getElementById('transferAmount').value) || 0;
     var desc   = document.getElementById('transferDesc').value.trim() || '本社からの資金移動';
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer' });
+    var _soTrans = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+    entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer', sortOrder:_soTrans });
     document.getElementById('transferAmount').value = '';
     document.getElementById('transferDesc').value = '';
   }
