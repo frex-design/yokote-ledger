@@ -1053,7 +1053,7 @@ function updateTransferNotice() {
       const [y,m,d] = e.date.split('-');
       return `<strong>${parseInt(m)}月${parseInt(d)}日</strong>：資金移動がありました（${fmt(e.amount)}）`;
     }).join('<br>');
-    notice.innerHTML = '💜 ' + lines;
+    notice.innerHTML = lines;
     notice.style.display = 'block';
   } else {
     badge.style.display  = 'none';
@@ -1063,16 +1063,34 @@ function updateTransferNotice() {
 
 // ===== SIDEBAR PREVIEW (リアルタイム) =====
 function previewSideBalance() {
-  // 入力中の金額を一時的に反映してサイドバー残高を更新
   const today = getTodayStr();
-  const bal = getBalanceAt(today);
-  document.getElementById('sideBalance').textContent = fmt(bal);
+  const mode = currentMode;
+  const inputAmount = v => parseInt((document.getElementById(v)||{}).value||0)||0;
 
-  // 手元資金合計
-  const totalEl = document.getElementById('sideTotalBalance');
-  if (totalEl) totalEl.textContent = fmt(bal + getCashBalance());
+  // 入力中の金額を仮反映して残高をプレビュー
+  let previewBankDelta = 0;
+  let previewCashDelta = 0;
+  if (mode === 'withdraw') {
+    const a = inputAmount('withdrawAmount');
+    previewBankDelta = -a; previewCashDelta = a;
+  } else if (mode === 'transfer') {
+    previewBankDelta = inputAmount('transferAmount');
+  } else if (mode === 'cash') {
+    previewCashDelta = -inputAmount('cashAmount');
+  } else if (mode === 'bank') {
+    const t = (document.getElementById('entryType')||{}).value;
+    const a = inputAmount('entryAmount');
+    previewCashDelta = t === 'in' ? a : -a;
+  }
+
+  const bal     = getBalanceAt(today) + previewBankDelta;
+  const cashBal = getCashBalance()    + previewCashDelta;
+
+  document.getElementById('sideBalance').textContent = fmt(bal);
   const cashEl = document.getElementById('sideCashBalance');
-  if (cashEl) cashEl.textContent = fmt(getCashBalance());
+  if (cashEl) cashEl.textContent = fmt(cashBal);
+  const totalEl = document.getElementById('sideTotalBalance');
+  if (totalEl) totalEl.textContent = fmt(bal + cashBal);
 }
 
 // ===== SIDEBAR =====
