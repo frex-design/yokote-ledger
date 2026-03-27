@@ -324,6 +324,7 @@
   <div class="header-right">
     <span id="syncStatus" style="font-size:11px; color:var(--text3); margin-right:4px;"></span>
     <span class="today-badge" id="todayLabel"></span>
+    <button class="btn btn-ghost btn-sm" onclick="openGuide()">📖 操作ガイド</button>
     <button class="btn btn-ghost btn-sm" onclick="openCsvExport()">📥 CSV出力</button>
     <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 印刷</button>
     <button class="btn btn-ghost btn-sm" onclick="openBalanceSetting()">⚙️ 設定</button>
@@ -662,6 +663,116 @@
   </div>
 </div>
 
+<!-- GUIDE MODAL -->
+<div class="modal-backdrop" id="guideModal">
+  <div class="modal-box" style="width:min(860px,95vw); max-height:90vh; overflow-y:auto;">
+    <div class="modal-header" style="position:sticky;top:0;background:#fff;z-index:10;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:0;">
+      <span class="modal-title" style="font-size:17px;">📖 横手事業所 入出金帳簿 操作ガイド</span>
+      <button class="modal-close" onclick="closeGuide()">✕</button>
+    </div>
+    <div style="padding:20px 0; line-height:1.8; font-size:13px; color:var(--text2);">
+
+      <!-- 概要 -->
+      <div style="background:var(--accent-subtle); border:1px solid var(--accent-border); border-radius:8px; padding:14px 18px; margin-bottom:24px;">
+        <div style="font-weight:700; color:var(--accent); margin-bottom:6px;">このシステムについて</div>
+        横手事業所の <strong>秋田銀行（横手）口座</strong> と <strong>現金（横手）</strong> の入出金を管理するシステムです。
+        登録したデータはクラウド（Supabase）に自動保存されるため、<strong>複数の端末から同じデータを参照・更新</strong>できます。
+      </div>
+
+      <!-- 左サイドバー -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px; font-weight:700; color:var(--text); border-left:4px solid var(--accent); padding-left:10px; margin-bottom:12px;">① 左サイドバーの見方</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="background:var(--bg3);">
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border); width:30%;">項目</th>
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border);">説明</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">手元資金合計</td><td style="padding:8px 12px; border:1px solid var(--border);">口座残高＋現金残高の合計。横手事業所の現在の手元資金を示します。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">口座残高</td><td style="padding:8px 12px; border:1px solid var(--border);">秋田銀行（横手）の残高。基点日付以降の口座系取引から自動計算されます。</td></tr>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">現金残高</td><td style="padding:8px 12px; border:1px solid var(--border);">横手事業所の手持ち現金残高。現金引出・現金出金・現金入出金から自動計算されます。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">基点表示</td><td style="padding:8px 12px; border:1px solid var(--border);">「基点: 日付 / 金額」と表示。この日付・金額を起点として残高計算します。⚙️設定から変更可能。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 入出金入力 -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px; font-weight:700; color:var(--text); border-left:4px solid var(--green); padding-left:10px; margin-bottom:12px;">② 入出金の登録方法</div>
+        <p style="margin-bottom:10px;">入力フォームのタブを選択して登録します。各タブの使い分けは以下の通りです。</p>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="background:var(--bg3);">
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border); width:28%;">タブ</th>
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border); width:36%;">使用場面</th>
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border);">残高への影響</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:var(--green); font-weight:600;">💴 現金 出金</span></td><td style="padding:8px 12px; border:1px solid var(--border);">現金で経費を支払ったとき（ガソリン代・消耗品など）</td><td style="padding:8px 12px; border:1px solid var(--border);">現金残高 <span style="color:var(--red);">▼減少</span></td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:var(--accent); font-weight:600;">🏧 現金引出</span></td><td style="padding:8px 12px; border:1px solid var(--border);">ATMで口座から現金を引き出したとき</td><td style="padding:8px 12px; border:1px solid var(--border);">口座残高 <span style="color:var(--red);">▼減少</span>　現金残高 <span style="color:var(--green);">▲増加</span></td></tr>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:#7c3aed; font-weight:600;">↔️ 資金移動</span></td><td style="padding:8px 12px; border:1px solid var(--border);">本社から横手口座へ資金が振り込まれたとき</td><td style="padding:8px 12px; border:1px solid var(--border);">口座残高 <span style="color:var(--green);">▲増加</span></td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:#2563eb; font-weight:600;">💴 現金 入出金</span></td><td style="padding:8px 12px; border:1px solid var(--border);">出張手当の返金など現金の受け渡しがあったとき</td><td style="padding:8px 12px; border:1px solid var(--border);">現金残高 <span style="color:var(--green);">▲▼増減</span></td></tr>
+          </tbody>
+        </table>
+        <div style="background:var(--bg3); border-radius:6px; padding:10px 14px; margin-top:10px; font-size:12px;">
+          💡 <strong>取引先</strong>は「○○店/支店名」まで具体的に記載してください。勘定科目は必ず選択してください。
+        </div>
+      </div>
+
+      <!-- 明細テーブル -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px; font-weight:700; color:var(--text); border-left:4px solid #2563eb; padding-left:10px; margin-bottom:12px;">③ 入出金明細の操作</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="background:var(--bg3);">
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border); width:28%;">操作</th>
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border);">方法・説明</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">月・期間の絞り込み</td><td style="padding:8px 12px; border:1px solid var(--border);">明細上部の「◀ 年月 ▶」をクリックして月を切替。カレンダーアイコンで年・月単位の選択も可能。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">検索</td><td style="padding:8px 12px; border:1px solid var(--border);">「摘要・取引先を検索」欄にキーワードを入力するとリアルタイムで絞り込まれます。</td></tr>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">編集</td><td style="padding:8px 12px; border:1px solid var(--border);">各行の「編集」ボタンをクリックするとポップアップが開き、全項目を修正できます。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">削除</td><td style="padding:8px 12px; border:1px solid var(--border);">「削除」ボタンをクリック後、確認メッセージが表示されます。削除すると残高に即時反映されます。</td></tr>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">並び替え</td><td style="padding:8px 12px; border:1px solid var(--border);"><strong>同じ日付の取引のみ</strong>、行左端の「⠿」をドラッグして順番を入れ替えられます。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">残高の見方</td><td style="padding:8px 12px; border:1px solid var(--border);">「現金残高」列は現金の累積残高、「口座残高」列は口座の累積残高を各行に表示します。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CSV・設定 -->
+      <div style="margin-bottom:24px;">
+        <div style="font-size:15px; font-weight:700; color:var(--text); border-left:4px solid #7c3aed; padding-left:10px; margin-bottom:12px;">④ CSV・設定ボタン</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <thead><tr style="background:var(--bg3);">
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border); width:28%;">ボタン</th>
+            <th style="padding:8px 12px; text-align:left; border:1px solid var(--border);">説明</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">📥 CSV出力</td><td style="padding:8px 12px; border:1px solid var(--border);">全期間・月別・年別を選択してCSVをダウンロードできます。Excelで開いて帳票として活用できます。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">📂 CSV取込</td><td style="padding:8px 12px; border:1px solid var(--border);">CSVファイルをドラッグ＆ドロップまたは選択してデータを一括取込できます。入出金入力欄の「CSV取込」から実行。</td></tr>
+            <tr><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">🖨 印刷</td><td style="padding:8px 12px; border:1px solid var(--border);">入出金明細のみ印刷されます。ヘッダー・サイドバー・入力フォームは印刷されません。</td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border); font-weight:600;">⚙️ 設定</td><td style="padding:8px 12px; border:1px solid var(--border);">口座・現金それぞれの<strong>残高基点（日付と金額）</strong>を設定します。通帳と突合して実残高を合わせる際に使用します。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 注意事項 -->
+      <div style="background:rgba(220,38,38,0.06); border:1px solid rgba(220,38,38,0.25); border-radius:8px; padding:14px 18px;">
+        <div style="font-weight:700; color:var(--red); margin-bottom:8px;">⚠️ 注意事項</div>
+        <ul style="padding-left:18px; font-size:12px; line-height:2;">
+          <li>データはクラウドに自動保存されます。削除したデータは復元できません。慎重に操作してください。</li>
+          <li>残高がずれた場合は⚙️設定から基点を修正してください。むやみに削除・再登録しないでください。</li>
+          <li>取引先は「○○店/支店名等」まで必ず記載してください（経費精算の証跡になります）。</li>
+          <li>資金移動（本社→横手）があった際は必ず当日中に登録してください。</li>
+          <li>月末には通帳の実残高と本システムの残高を照合し、差異がないか確認してください。</li>
+        </ul>
+      </div>
+
+    </div>
+    <div style="display:flex; justify-content:flex-end; padding-top:16px; border-top:1px solid var(--border); margin-top:8px;">
+      <button class="btn btn-primary" onclick="closeGuide()">閉じる</button>
+    </div>
+  </div>
+</div>
+
 <!-- BALANCE SETTING MODAL -->
 <div class="modal-backdrop" id="balanceSettingModal">
   <div class="modal-box" style="width:520px;">
@@ -863,6 +974,7 @@ let csvParsed = [];
 let csvSelectedMonth = '';
 let csvSelectedYear  = '';
 let miniChart = null;
+let isSaving = false; // 自分が保存中は再取得しない
 
 // ===== STORAGE (Supabase) =====
 
@@ -883,6 +995,7 @@ function loadLocal() {
 
 // Supabaseへ全エントリを同期
 async function save() {
+  isSaving = true;
   saveLocal();
   try {
     // 全削除→全挿入で同期（シンプル確実）
@@ -921,6 +1034,46 @@ async function save() {
     });
   } catch(err) {
     console.warn('Supabase保存失敗（ローカルに保存済み）:', err);
+  }
+}
+
+// 他デバイスの更新を静かに取り込む（自分が保存中はスキップ）
+async function silentReload() {
+  if (isSaving) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ledger_entries?order=id.asc&limit=10000`, {
+      headers: SUPABASE_HEADERS
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    // エントリ数か内容が変わっていたら更新
+    const newEntries = rows.map(r => ({
+      id: r.id, date: r.date, type: r.type,
+      txType: r.tx_type || 'bank', status: r.status,
+      amount: r.amount, partner: r.partner || '',
+      desc: r.desc_text || '', category: r.category || '',
+      note: r.note || '', sortOrder: r.sort_order || r.id
+    }));
+    const oldJson = JSON.stringify(entries.map(e => e.id + e.amount).sort());
+    const newJson = JSON.stringify(newEntries.map(e => e.id + e.amount).sort());
+    if (oldJson === newJson) return; // 変化なし
+
+    // meta も取得
+    const mres = await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?select=key,value`, {
+      headers: SUPABASE_HEADERS
+    });
+    const meta = await mres.json();
+    meta.forEach(m => {
+      if (m.key === 'nextId' && m.value) nextId = parseInt(m.value) || nextId;
+      if (m.key === 'balAdjBank' && m.value) balAdjBank = JSON.parse(m.value);
+      if (m.key === 'balAdjCash' && m.value) balAdjCash = JSON.parse(m.value);
+    });
+    entries = newEntries;
+    saveLocal();
+    renderAll();
+    showSyncStatus('🔄 他端末の更新を反映', true);
+  } catch(e) {
+    // サイレント失敗（エラー表示しない）
   }
 }
 
@@ -965,108 +1118,6 @@ async function load() {
   } catch(err) {
     console.warn('Supabase読込失敗（ローカルデータを使用）:', err);
     showSyncStatus('⚠ オフライン', false, true);
-  }
-  // ===== 本社からの自動送信データを取込（load完了後に実行）=====
-  await importFromHonsha();
-}
-
-// 本社帳簿のentries_yokoteテーブルから未取込データを取込
-async function importFromHonsha() {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/entries_yokote?order=id.asc&limit=10000`, {
-      headers: SUPABASE_HEADERS
-    });
-    if (!res.ok) return;
-    const yokoteRows = await res.json();
-    if (!yokoteRows || yokoteRows.length === 0) return;
-
-    // 既に取込済みのentries_yokote IDをledger_metaから取得
-    const metaRes = await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.imported_yokote_ids&select=value`, {
-      headers: SUPABASE_HEADERS
-    });
-    const metaData = await metaRes.json();
-    // IDは文字列に統一して比較
-    const importedIds = new Set(
-      metaData.length > 0 && metaData[0].value
-        ? JSON.parse(metaData[0].value).map(String)
-        : []
-    );
-
-    // 未取込のものだけ処理
-    const newRows = yokoteRows.filter(r => !importedIds.has(String(r.id)));
-    if (newRows.length === 0) return;
-
-    // ledger_entriesに追加
-    let added = 0;
-    const newLedgerRows = [];
-    for (const r of newRows) {
-      const newId = nextId++;
-      const sortOrder = Math.max(0, ...entries.filter(x => x.date === r.date).map(x => x.sortOrder || 0)) + 10;
-      const entry = {
-        id: newId,
-        date: r.date,
-        type: 'in',
-        txType: 'transfer',
-        status: r.status || 'confirmed',
-        amount: Number(r.amount),
-        partner: '秋田銀行（本社）',
-        desc: '本社からの資金移動',
-        category: '資金移動',
-        note: '',
-        sortOrder: sortOrder,
-      };
-      entries.push(entry);
-      newLedgerRows.push({
-        id: newId,
-        date: entry.date,
-        type: entry.type,
-        tx_type: entry.txType,
-        status: entry.status,
-        amount: entry.amount,
-        partner: entry.partner,
-        desc_text: entry.desc,
-        category: entry.category,
-        note: entry.note,
-        sort_order: entry.sortOrder,
-      });
-      importedIds.add(String(r.id));
-      added++;
-    }
-
-    if (added > 0) {
-      // ledger_entriesに追記（全削除せず追加のみ）
-      await fetch(`${SUPABASE_URL}/rest/v1/ledger_entries`, {
-        method: 'POST',
-        headers: { ...SUPABASE_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify(newLedgerRows)
-      });
-
-      // nextIdをledger_metaに保存
-      await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.nextId`, {
-        method: 'DELETE', headers: SUPABASE_HEADERS
-      });
-      await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta`, {
-        method: 'POST',
-        headers: { ...SUPABASE_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify([{ key: 'nextId', value: String(nextId) }])
-      });
-
-      // 取込済みIDリストをledger_metaに保存
-      const idList = JSON.stringify(Array.from(importedIds));
-      await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.imported_yokote_ids`, {
-        method: 'DELETE', headers: SUPABASE_HEADERS
-      });
-      await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta`, {
-        method: 'POST',
-        headers: { ...SUPABASE_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify([{ key: 'imported_yokote_ids', value: idList }])
-      });
-
-      saveLocal();
-      showToast(`本社から ${added}件 の資金移動を取込みました`);
-    }
-  } catch(err) {
-    console.warn('entries_yokote取込エラー:', err);
   }
 }
 
@@ -2005,6 +2056,10 @@ function saveBalanceAdjust(type) {
   renderAll(); showToast('実残高を保存しました');
 }
 
+// ===== GUIDE MODAL =====
+function openGuide()  { document.getElementById('guideModal').classList.add('open'); }
+function closeGuide() { document.getElementById('guideModal').classList.remove('open'); }
+
 // ===== BALANCE SETTING MODAL =====
 function openBalanceSetting() {
   const today = getTodayStr();
@@ -2284,6 +2339,17 @@ function showToast(msg) {
 (function() {
   document.getElementById('loginOverlay').style.display = 'none';
   init().catch(e => console.error('init error:', e));
+
+  // 30秒ごとに他デバイスの更新をチェック
+  setInterval(() => silentReload(), 30000);
+
+  // タブがアクティブになった時に即時チェック
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') silentReload();
+  });
+
+  // ウィンドウがフォーカスを得た時に即時チェック
+  window.addEventListener('focus', () => silentReload());
 })();
 </script>
 </body>
