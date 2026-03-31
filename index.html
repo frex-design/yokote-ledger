@@ -286,33 +286,62 @@
   #toastMsg { position:fixed; bottom:32px; right:32px; background:#1a2236; color:#fff; padding:12px 20px; border-radius:8px; font-size:13px; z-index:9999; opacity:0; transition:opacity 0.4s; pointer-events:none; min-width:200px; text-align:center; }
 
   @media print {
+    /* 非表示要素 */
     .header, .sidebar, .chart-card, #formCard, .filter-bar,
     .btn, #toastMsg, #cal_entry, .modal-backdrop,
     .drag-handle, .edit-actions, .section-header { display:none !important; }
 
-    * { box-shadow:none !important; }
-    body { background:#fff; margin:0; padding:0; }
+    /* ベースリセット */
+    * { box-shadow:none !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body { background:#fff !important; margin:0; padding:0; color:#000 !important; }
+
+    /* レイアウト */
     .main { display:block !important; height:auto !important; overflow:visible !important; }
-    .content { padding:8px !important; overflow:visible !important; flex:none !important; width:100% !important; }
+    .content { padding:0 !important; overflow:visible !important; flex:none !important; width:100% !important; }
 
-    .table-wrap { border:1px solid #ccc; overflow:visible !important; width:100% !important; }
-    table { width:100% !important; border-collapse:collapse !important; font-size:10px !important; table-layout:fixed !important; }
-    th, td { padding:4px 5px !important; border:1px solid #ccc !important; word-break:break-all !important; font-size:10px !important; }
-    th { background:#f0f0f0 !important; font-weight:600 !important; }
+    /* テーブル */
+    .table-wrap { border:none !important; overflow:visible !important; width:100% !important; }
+    table { width:100% !important; border-collapse:collapse !important; table-layout:auto !important; }
+    th, td {
+      padding:3px 4px !important;
+      border:0.5px solid #999 !important;
+      font-size:8.5px !important;
+      color:#000 !important;
+      word-break:break-word !important;
+      white-space:normal !important;
+    }
+    th { background:#eee !important; font-weight:700 !important; text-align:center !important; }
 
-    .badge { background:none !important; border:1px solid #999 !important; padding:1px 3px !important; font-size:9px !important; color:#333 !important; }
-    .pos-val, .neg-val, .muted { color:#000 !important; }
+    /* 数値列は右寄せ */
+    td.text-right { text-align:right !important; }
 
+    /* バッジ */
+    .badge {
+      background:#eee !important;
+      border:0.5px solid #999 !important;
+      padding:1px 3px !important;
+      font-size:8px !important;
+      color:#000 !important;
+      border-radius:3px !important;
+    }
+
+    /* 残高の色を黒に統一（印刷で色が出ない対策）*/
+    .pos-val, .neg-val, .muted, span { color:#000 !important; }
+
+    /* タイトル */
     .content::before {
       content: "横手事業所 入出金明細";
       display:block;
-      font-size:14px;
+      font-size:13px;
       font-weight:700;
-      margin-bottom:8px;
+      margin-bottom:6px;
       text-align:center;
+      border-bottom:1px solid #000;
+      padding-bottom:4px;
     }
 
-    @page { size: A4 landscape; margin: 10mm; }
+    /* A4縦 余白10mm */
+    @page { size: A4 portrait; margin: 10mm; }
   }
 </style>
 </head>
