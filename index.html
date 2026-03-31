@@ -286,11 +286,33 @@
   #toastMsg { position:fixed; bottom:32px; right:32px; background:#1a2236; color:#fff; padding:12px 20px; border-radius:8px; font-size:13px; z-index:9999; opacity:0; transition:opacity 0.4s; pointer-events:none; min-width:200px; text-align:center; }
 
   @media print {
-    .header, .sidebar, .chart-card, #formCard, .filter-bar, .btn, #toastMsg { display:none !important; }
-    .main { display:block; height:auto; }
-    .content { padding:0; }
-    body { background:#fff; }
-    .table-wrap { border:1px solid #ccc; }
+    .header, .sidebar, .chart-card, #formCard, .filter-bar,
+    .btn, #toastMsg, #cal_entry, .modal-backdrop,
+    .drag-handle, .edit-actions, .section-header { display:none !important; }
+
+    * { box-shadow:none !important; }
+    body { background:#fff; margin:0; padding:0; }
+    .main { display:block !important; height:auto !important; overflow:visible !important; }
+    .content { padding:8px !important; overflow:visible !important; flex:none !important; width:100% !important; }
+
+    .table-wrap { border:1px solid #ccc; overflow:visible !important; width:100% !important; }
+    table { width:100% !important; border-collapse:collapse !important; font-size:10px !important; table-layout:fixed !important; }
+    th, td { padding:4px 5px !important; border:1px solid #ccc !important; word-break:break-all !important; font-size:10px !important; }
+    th { background:#f0f0f0 !important; font-weight:600 !important; }
+
+    .badge { background:none !important; border:1px solid #999 !important; padding:1px 3px !important; font-size:9px !important; color:#333 !important; }
+    .pos-val, .neg-val, .muted { color:#000 !important; }
+
+    .content::before {
+      content: "横手事業所 入出金明細";
+      display:block;
+      font-size:14px;
+      font-weight:700;
+      margin-bottom:8px;
+      text-align:center;
+    }
+
+    @page { size: A4 landscape; margin: 10mm; }
   }
 </style>
 </head>
