@@ -289,59 +289,73 @@
     /* 非表示要素 */
     .header, .sidebar, .chart-card, #formCard, .filter-bar,
     .btn, #toastMsg, #cal_entry, .modal-backdrop,
-    .drag-handle, .edit-actions, .section-header { display:none !important; }
+    .section-header { display:none !important; }
+
+    /* 印刷不要列を非表示（ドラッグ・備考・操作） */
+    thead tr th:nth-child(1),  /* ドラッグ */
+    tbody tr td:nth-child(1),
+    thead tr th:nth-child(11), /* 備考 */
+    tbody tr td:nth-child(11),
+    thead tr th:nth-child(12), /* 操作 */
+    tbody tr td:nth-child(12) { display:none !important; }
 
     /* ベースリセット */
-    * { box-shadow:none !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-    body { background:#fff !important; margin:0; padding:0; color:#000 !important; }
+    * { box-shadow:none !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    body { background:#fff !important; margin:0 !important; padding:0 !important; color:#000 !important; font-family:sans-serif !important; }
 
     /* レイアウト */
     .main { display:block !important; height:auto !important; overflow:visible !important; }
     .content { padding:0 !important; overflow:visible !important; flex:none !important; width:100% !important; }
 
-    /* テーブル */
+    /* テーブル全体 */
     .table-wrap { border:none !important; overflow:visible !important; width:100% !important; }
-    table { width:100% !important; border-collapse:collapse !important; table-layout:auto !important; }
-    th, td {
-      padding:3px 4px !important;
-      border:0.5px solid #999 !important;
-      font-size:8.5px !important;
-      color:#000 !important;
-      word-break:break-word !important;
-      white-space:normal !important;
+    table {
+      width:100% !important;
+      border-collapse:collapse !important;
+      table-layout:fixed !important;
+      font-size:8px !important;
     }
-    th { background:#eee !important; font-weight:700 !important; text-align:center !important; }
 
-    /* 数値列は右寄せ */
-    td.text-right { text-align:right !important; }
+    /* 各列の幅を固定（A4縦190mm内に収める） */
+    thead tr th:nth-child(2)  { width:18mm !important; } /* 日付 */
+    thead tr th:nth-child(3)  { width:22mm !important; } /* 種別 */
+    thead tr th:nth-child(4)  { width:22mm !important; } /* 取引先 */
+    thead tr th:nth-child(5)  { width:30mm !important; } /* 摘要 */
+    thead tr th:nth-child(6)  { width:18mm !important; } /* 科目 */
+    thead tr th:nth-child(7)  { width:20mm !important; } /* 入金 */
+    thead tr th:nth-child(8)  { width:20mm !important; } /* 出金 */
+    thead tr th:nth-child(9)  { width:20mm !important; } /* 現金残高 */
+    thead tr th:nth-child(10) { width:20mm !important; } /* 口座残高 */
 
-    /* バッジ */
-    .badge {
-      background:#eee !important;
-      border:0.5px solid #999 !important;
-      padding:1px 3px !important;
+    th, td {
+      padding:2px 3px !important;
+      border:0.5px solid #aaa !important;
       font-size:8px !important;
       color:#000 !important;
-      border-radius:3px !important;
+      word-break:break-all !important;
+      white-space:normal !important;
+      overflow:hidden !important;
     }
+    th { background:#e8e8e8 !important; font-weight:700 !important; text-align:center !important; }
+    td.text-right { text-align:right !important; font-family:monospace !important; }
 
-    /* 残高の色を黒に統一（印刷で色が出ない対策）*/
-    .pos-val, .neg-val, .muted, span { color:#000 !important; }
+    /* バッジ・残高カラーを黒統一 */
+    .badge, .pos-val, .neg-val, .muted, span, td * { color:#000 !important; background:none !important; border-color:#aaa !important; }
+    .badge { border:0.5px solid #999 !important; padding:0 2px !important; font-size:7.5px !important; }
 
     /* タイトル */
     .content::before {
       content: "横手事業所 入出金明細";
-      display:block;
-      font-size:13px;
-      font-weight:700;
-      margin-bottom:6px;
-      text-align:center;
-      border-bottom:1px solid #000;
-      padding-bottom:4px;
+      display:block !important;
+      font-size:12px !important;
+      font-weight:700 !important;
+      margin-bottom:5px !important;
+      text-align:center !important;
+      border-bottom:1px solid #000 !important;
+      padding-bottom:3px !important;
     }
 
-    /* A4縦 余白10mm */
-    @page { size: A4 portrait; margin: 10mm; }
+    @page { size: A4 portrait; margin: 8mm 10mm; }
   }
 </style>
 </head>
