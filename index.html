@@ -386,15 +386,15 @@
           <button class="mode-tab" id="modeTab_transfer" onclick="switchFormMode('transfer')">↔️ 資金移動（本社→横手）</button>
           <span class="new-badge" id="transferNewBadge" style="display:none;">NEW</span>
         </div>
-        <button class="mode-tab" id="modeTab_bank" onclick="switchFormMode('bank')">💴 現金 入出金</button>
+        <button class="mode-tab" id="modeTab_bank" onclick="switchFormMode('bank')">🔄 手当返金</button>
       </div>
 
       <!-- ① 現金 入出金 -->
       <div class="form-panel" id="formPanel_bank">
         <div style="background:rgba(22,163,74,0.06); border:1px solid rgba(22,163,74,0.2); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text2);">
-          💴 現金（横手）の入出金を登録します。入金で現金残高が増え、出金で現金残高が減ります。
+          🔄 出張手当の戻りがあった場合、入金として処理します。
         </div>
-        <div style="display:grid; grid-template-columns:160px 100px 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px;">
+        <div style="display:grid; grid-template-columns:160px 1fr 1fr auto; gap:8px; align-items:end; margin-bottom:8px;">
           <div class="form-group" style="position:relative;">
             <label class="form-label">日付</label>
             <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
@@ -405,20 +405,14 @@
               <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">種別</label>
-            <select class="form-select" id="entryType">
-              <option value="in">入金</option>
-              <option value="out">出金</option>
-            </select>
-          </div>
+          <input type="hidden" id="entryType" value="in">
           <div class="form-group">
             <label class="form-label">金額（円）</label>
             <input type="number" class="form-input" id="entryAmount" placeholder="0" min="0" oninput="previewSideBalance()">
           </div>
           <div class="form-group">
-            <label class="form-label">摘要</label>
-            <input type="text" class="form-input" id="entryDesc" placeholder="例：出張手当返金">
+            <label class="form-label">返金氏名</label>
+            <input type="text" class="form-input" id="entryDesc" placeholder="例：山田 太郎">
           </div>
           <div class="form-group" style="align-self:end;">
             <button class="btn btn-primary btn-sm" id="submitBtn" onclick="submitEntry('bank')">登録</button>
@@ -710,7 +704,7 @@
             <tr><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:var(--green); font-weight:600;">💴 現金 出金</span></td><td style="padding:8px 12px; border:1px solid var(--border);">現金で経費を支払ったとき（ガソリン代・消耗品など）</td><td style="padding:8px 12px; border:1px solid var(--border);">現金残高 <span style="color:var(--red);">▼減少</span></td></tr>
             <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:var(--accent); font-weight:600;">🏧 現金引出</span></td><td style="padding:8px 12px; border:1px solid var(--border);">ATMで口座から現金を引き出したとき</td><td style="padding:8px 12px; border:1px solid var(--border);">口座残高 <span style="color:var(--red);">▼減少</span>　現金残高 <span style="color:var(--green);">▲増加</span></td></tr>
             <tr><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:#7c3aed; font-weight:600;">↔️ 資金移動</span></td><td style="padding:8px 12px; border:1px solid var(--border);">本社から横手口座へ資金が振り込まれたとき</td><td style="padding:8px 12px; border:1px solid var(--border);">口座残高 <span style="color:var(--green);">▲増加</span></td></tr>
-            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:#2563eb; font-weight:600;">💴 現金 入出金</span></td><td style="padding:8px 12px; border:1px solid var(--border);">出張手当の返金など現金の受け渡しがあったとき</td><td style="padding:8px 12px; border:1px solid var(--border);">現金残高 <span style="color:var(--green);">▲▼増減</span></td></tr>
+            <tr style="background:var(--bg3);"><td style="padding:8px 12px; border:1px solid var(--border);"><span style="color:#2563eb; font-weight:600;">🔄 手当返金</span></td><td style="padding:8px 12px; border:1px solid var(--border);">出張手当の戻りがあった場合に入金として処理</td><td style="padding:8px 12px; border:1px solid var(--border);">現金残高 <span style="color:var(--green);">▲増加</span></td></tr>
           </tbody>
         </table>
         <div style="background:var(--bg3); border-radius:6px; padding:10px 14px; margin-top:10px; font-size:12px;">
@@ -951,7 +945,7 @@ const SUPABASE_HEADERS = {
 };
 const ACCOUNT_ID       = 'akita_yokote';
 const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
-const INIT_BALANCE_CASH = 4864;   // 現金（横手）初期残高
+const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
 const INIT_DATE         = '2026-02-28'; // この日より後のエントリを計上
 const STORAGE_KEY       = 'fd_yokote_ledger_v1';
 const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
@@ -1215,7 +1209,7 @@ async function init() {
   loadLocal();
   // 現金残高の基点が未設定の場合はデフォルト値をセット
   if (!balAdjCash) {
-    balAdjCash = { date: '2026-03-01', actual: 4864 };
+    balAdjCash = { date: '2026-03-01', actual: 6404 };
     saveAdjCash();
   }
   renderAll();
@@ -1419,8 +1413,8 @@ function renderTable() {
       bank_in:   '<span class="badge badge-bank">口座 入金</span>',
       bank_out:  '<span class="badge badge-out">口座 出金</span>',
       cash:      '<span class="badge badge-cash-out">現金 出金</span>',
-      cash_io_in: '<span class="badge badge-cash-io">現金 入金</span>',
-      cash_io_out:'<span class="badge badge-cash-io">現金 出金</span>',
+      cash_io_in: '<span class="badge badge-cash-io">手当返金</span>',
+      cash_io_out:'<span class="badge badge-cash-io">手当返金</span>',
       withdraw:  '<span class="badge badge-bank">現金引出</span>',
       transfer:  '<span class="badge badge-transfer">資金移動</span>',
     };
