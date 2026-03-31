@@ -1028,6 +1028,8 @@ async function save() {
     });
   } catch(err) {
     console.warn('Supabase保存失敗（ローカルに保存済み）:', err);
+  } finally {
+    isSaving = false;
   }
 }
 
@@ -1074,8 +1076,7 @@ async function silentReload() {
 
 // transfer_request を独立してチェック（silentReloadとは別に毎回実行）
 async function checkTransferRequest() {
-  console.log("checkTransferRequest called, isSaving:", isSaving);
-  if (isSaving) return;
+  // isSavingに関係なく常に実行（transfer_requestは独立）
   try {
     const treqRes = await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.transfer_request`, {
       headers: SUPABASE_HEADERS
