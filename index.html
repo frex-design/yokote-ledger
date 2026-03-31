@@ -1094,9 +1094,11 @@ async function checkTransferRequest() {
     const desc = req.desc || '本社からの資金移動';
     const today = getTodayStr();
     const diffDays = Math.ceil((new Date(date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+    console.log('transfer_request: date=', date, 'today=', today, 'diffDays=', diffDays, 'amount=', amount);
 
     if (diffDays > 0 && diffDays <= 10) {
       // 未来の予告：トーストのみ（削除しない）
+      console.log('showing toast:', diffDays + '日後に資金移動');
       showToast(diffDays + '日後に資金移動（' + fmt(amount) + '）があります');
       return;
     }
