@@ -1343,6 +1343,10 @@ function renderSidebar() {
 
 // ===== TABLE =====
 function renderTable() {
+  // ===デバッグ===
+  console.log('entries count:', entries.length);
+  entries.slice(0,5).forEach(e => console.log('entry:', e.id, e.txType, e.type, e.amount, e.date));
+  // ===デバッグ終===
   const statusF = 'all'; // 区分フィルター廃止
   const typeF   = document.getElementById('filterType').value;
   const q       = document.getElementById('filterSearch').value.trim().toLowerCase();
