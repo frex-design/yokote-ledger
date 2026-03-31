@@ -1414,17 +1414,11 @@ function renderTable() {
     return;
   }
 
-  // フィルター後: 前行の残高を引き継ぎ「―」を出さない
-  let prevBal  = _bankBaseVal;
-  let prevCash = _cashBaseVal;
-
   body.innerHTML = list.map(e => {
     if (editingId === e.id) return buildInlineEdit(e);
-    // balMap/cashMap に値があればそれを使い、なければ前行の値を引き継ぐ
-    const bal      = balMap[e.id]  != null ? balMap[e.id]  : prevBal;
-    const cashVal  = cashMap[e.id] != null ? cashMap[e.id] : prevCash;
-    prevBal  = bal;
-    prevCash = cashVal;
+    // 各行ごとに balMap/cashMap から直接取得（全エントリで計算済み）
+    const bal     = balMap[e.id]  != null ? balMap[e.id]  : _bankBaseVal;
+    const cashVal = cashMap[e.id] != null ? cashMap[e.id] : _cashBaseVal;
     const balStr = fmtNum(bal);
     const balCls = bal >= 0 ? 'pos-val' : 'neg-val';
     const txBadge = {
