@@ -1092,18 +1092,7 @@ async function checkTransferRequest() {
     const amount = parseInt(req.amount);
     const desc = req.desc || '本社からの資金移動';
     const today = getTodayStr();
-    // タイムゾーン安全な日数計算（文字列比較）
-    const diffDays = date > today ? Math.ceil((new Date(date) - new Date(today)) / 86400000) : (date === today ? 0 : -1);
-
-    if (diffDays > 0 && diffDays <= 10) {
-      // 未来の予告：トーストのみ（削除しない）
-        showToast(diffDays + '日後に資金移動（' + fmt(amount) + '）があります');
-      return;
-    }
-
-    if (diffDays > 10) return; // まだ早い
-
-    // 当日または過去 → 自動登録
+    // 受信したら即座に登録（日付はそのまま使用）
     const _soT = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
     entries.push({
       id: uid(), date, type:'in', status:'confirmed',
