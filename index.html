@@ -382,11 +382,11 @@
       <div class="mode-tabs">
         <button class="mode-tab active-cash" id="modeTab_cash" onclick="switchFormMode('cash')">💴 現金 出金</button>
         <button class="mode-tab" id="modeTab_withdraw" onclick="switchFormMode('withdraw')">🏧 現金引出</button>
+        <button class="mode-tab" id="modeTab_bank" onclick="switchFormMode('bank')">🔄 手当返金</button>
         <div class="tab-wrapper">
           <button class="mode-tab" id="modeTab_transfer" onclick="switchFormMode('transfer')">↔️ 資金移動（本社→横手）</button>
           <span class="new-badge" id="transferNewBadge" style="display:none;">NEW</span>
         </div>
-        <button class="mode-tab" id="modeTab_bank" onclick="switchFormMode('bank')">🔄 手当返金</button>
       </div>
 
       <!-- ① 現金 入出金 -->
@@ -1171,26 +1171,30 @@ function getBalanceAt(date) {
   if (balAdjBank && balAdjBank.date <= date) { base = balAdjBank.actual; baseDate = balAdjBank.date; }
   let bal = base;
   entries
-    .filter(e => e.status === 'confirmed' && e.date >= INIT_DATE && e.date <= date
+    .filter(e => e.status === 'confirmed' && e.date > baseDate && e.date <= date
               && e.txType !== 'cash' && e.txType !== 'cash_io')
-    .sort((a,b) => a.date.localeCompare(b.date))
-    .forEach(e => { bal += e.type === 'in' ? e.amount : -e.amount; });
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
+    .forEach(e => {
+      if (e.txType === 'withdraw') {
+        bal -= e.amount;       // 現金引出: 口座から出金
+      } else {
+        bal += e.type === 'in' ? e.amount : -e.amount;
+      }
+    });
   return bal;
 }
 function getCashBalance() {
-  // 初期値：手動調整があればその値を基準に、なければ INIT_BALANCE_CASH
-  let base = INIT_BALANCE_CASH;
-  let baseDate = INIT_DATE;
-  if (balAdjCash) { base = balAdjCash.actual; baseDate = balAdjCash.date; }
-  // 基準日より後のエントリを積み上げ
-  let cash = base;
+  // 現金（横手）残高: 基点から積み上げ計算
+  const baseDate = balAdjCash ? balAdjCash.date : INIT_DATE;
+  const baseVal  = balAdjCash ? balAdjCash.actual : INIT_BALANCE_CASH;
+  let cash = baseVal;
   [...entries]
     .filter(e => e.status === 'confirmed' && e.date > baseDate)
-    .sort((a,b) => a.date.localeCompare(b.date) || a.id - b.id)
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
     .forEach(e => {
-      if (e.txType === 'withdraw') cash += e.amount;
-      else if (e.txType === 'cash') cash -= e.amount;
-      else if (e.txType === 'cash_io') cash += e.type === 'in' ? e.amount : -e.amount;
+      if      (e.txType === 'withdraw') cash += e.amount;       // 現金引出: 現金が増える
+      else if (e.txType === 'cash')     cash -= e.amount;       // 現金出金: 現金が減る
+      else if (e.txType === 'cash_io')  cash += e.type === 'in' ? e.amount : -e.amount; // 手当返金
     });
   return cash;
 }
@@ -1209,7 +1213,7 @@ async function init() {
   loadLocal();
   // 現金残高の基点が未設定の場合はデフォルト値をセット
   if (!balAdjCash) {
-    balAdjCash = { date: '2026-03-01', actual: 6404 };
+    balAdjCash = { date: '2026-03-01', actual: 6404 }; // 現金（横手）基点
     saveAdjCash();
   }
   renderAll();
@@ -1350,30 +1354,44 @@ function renderTable() {
 
   let list = [...entries].sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id));
 
-  // 全エントリを時系列処理：口座残高・現金残高を同時にスナップショット
+  // ===== 残高スナップショット計算 =====
+  // 口座残高の基点
+  const _bankBaseDate = balAdjBank ? balAdjBank.date : INIT_DATE;
+  const _bankBaseVal  = balAdjBank ? balAdjBank.actual : INIT_BALANCE_BANK;
+  // 現金残高の基点（設定: 2026-03-01 / ¥6,404 または balAdjCash）
+  const _cashBaseDate = balAdjCash ? balAdjCash.date : INIT_DATE;
+  const _cashBaseVal  = balAdjCash ? balAdjCash.actual : INIT_BALANCE_CASH;
+
   const balMap  = {};
   const cashMap = {};
+  let runBal  = _bankBaseVal;
+  let runCash = _cashBaseVal;
 
-  // 初期値セット
-  let runBal  = balAdjBank ? balAdjBank.actual  : INIT_BALANCE_BANK;
-  let runCash = balAdjCash ? balAdjCash.actual  : INIT_BALANCE_CASH;
-  let bankBase = balAdjBank ? balAdjBank.date : INIT_DATE;
-  let cashBase2 = balAdjCash ? balAdjCash.date : INIT_DATE;
-
-  // 全エントリを時系列で処理してスナップショット記録
+  // 全エントリを時系列・sortOrder順で処理
   [...entries]
     .filter(e => e.status === 'confirmed')
     .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
     .forEach(e => {
-      // 口座残高に影響する取引（bank・withdraw・transfer）
-      if (e.txType !== 'cash' && e.txType !== 'cash_io' && e.date > bankBase) {
-        runBal += e.type === 'in' ? e.amount : -e.amount;
+      // ── 口座残高への影響 ──
+      // 基点日より後かつ現金系(cash/cash_io)以外
+      if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io') {
+        // bank(口座入出金)・transfer(資金移動=入金)・withdraw(現金引出=口座から出金)
+        if (e.txType === 'withdraw') {
+          runBal -= e.amount;          // 現金引出: 口座から出金
+        } else {
+          runBal += e.type === 'in' ? e.amount : -e.amount;
+        }
       }
-      // 現金残高に影響する取引
-      if (e.date > cashBase2) {
-        if (e.txType === 'withdraw')      runCash += e.amount;
-        else if (e.txType === 'cash')     runCash -= e.amount;
-        else if (e.txType === 'cash_io')  runCash += e.type === 'in' ? e.amount : -e.amount;
+      // ── 現金残高への影響 ──
+      // 基点日より後かつ現金系のみ
+      if (e.date > _cashBaseDate) {
+        if (e.txType === 'withdraw') {
+          runCash += e.amount;         // 現金引出: 現金が増える
+        } else if (e.txType === 'cash') {
+          runCash -= e.amount;         // 現金出金: 現金が減る
+        } else if (e.txType === 'cash_io') {
+          runCash += e.type === 'in' ? e.amount : -e.amount; // 手当返金
+        }
       }
       // 全行にスナップショットを記録
       balMap[e.id]  = runBal;
@@ -1397,8 +1415,8 @@ function renderTable() {
   }
 
   // フィルター後: 前行の残高を引き継ぎ「―」を出さない
-  let prevBal  = balAdjBank ? balAdjBank.actual : INIT_BALANCE_BANK;
-  let prevCash = balAdjCash ? balAdjCash.actual : INIT_BALANCE_CASH;
+  let prevBal  = _bankBaseVal;
+  let prevCash = _cashBaseVal;
 
   body.innerHTML = list.map(e => {
     if (editingId === e.id) return buildInlineEdit(e);
