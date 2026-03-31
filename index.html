@@ -1211,15 +1211,42 @@ async function init() {
   setEntryDate(getTodayStr());
   // まずローカルデータで即時描画
   loadLocal();
-  // 現金残高の基点が未設定の場合はデフォルト値をセット
-  if (!balAdjCash) {
-    balAdjCash = { date: '2026-03-01', actual: 6404 }; // 現金（横手）基点
-    saveAdjCash();
+
+  // 現金残高の基点を正しい値に強制セット（常に2026-03-01/6404を基点とする）
+  balAdjCash = { date: '2026-03-01', actual: 6404 };
+  // 口座残高の基点が未設定なら初期値をセット
+  if (!balAdjBank) {
+    balAdjBank = { date: '2026-03-01', actual: 9712 };
   }
+
   renderAll();
-  // その後Supabaseから非同期取得して再描画
+
+  // Supabaseから取得（テーブルが空ならlocalStorageのデータを移行）
   try {
-    await load();
+    showSyncStatus('同期中…');
+    const chkRes = await fetch(`${SUPABASE_URL}/rest/v1/ledger_entries?select=id&limit=1`, {
+      headers: SUPABASE_HEADERS
+    });
+    const chkRows = await chkRes.json();
+
+    if (chkRows.length === 0 && entries.length > 0) {
+      // Supabaseが空 → localStorageのデータを移行
+      showSyncStatus('データ移行中…');
+      await save();
+      showSyncStatus('✓ 移行完了', true);
+    } else {
+      // Supabaseにデータあり → 取得して表示
+      await load();
+    }
+
+    // 基点を正しい値でSupabaseに保存
+    balAdjCash = { date: '2026-03-01', actual: 6404 };
+    await saveAdjCash();
+    if (!balAdjBank) {
+      balAdjBank = { date: '2026-03-01', actual: 9712 };
+      await saveAdjBank();
+    }
+
     renderAll();
   } catch(e) {
     console.warn('Supabase初期化エラー:', e);
