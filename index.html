@@ -1291,6 +1291,12 @@ async function init() {
       await load();
     }
 
+    // フィルターを今月に維持
+    const _nowYm = getTodayStr().slice(0,7);
+    if (filterYM !== _nowYm || filterYMMode !== 'month') {
+      filterYM = _nowYm; filterYMMode = 'month';
+      document.getElementById('filterMonthHidden').value = _nowYm;
+    }
     // 基点を正しい値でSupabaseに保存
     balAdjCash = { date: '2026-03-01', actual: 6404 };
     await saveAdjCash();
@@ -1493,6 +1499,7 @@ function renderTable() {
     return;
   }
 
+  try {
   body.innerHTML = list.map(e => {
     if (editingId === e.id) return buildInlineEdit(e);
     // 各行ごとに balMap/cashMap から直接取得（全エントリで計算済み）
@@ -1534,6 +1541,7 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
+  } catch(err) { console.error('renderTable innerHTML error:', err); }
 }
 
 // ===== TRANSFER REQUEST（他帳簿からの資金移動受信）=====
