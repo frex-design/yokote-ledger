@@ -1069,6 +1069,39 @@ async function silentReload() {
   } catch(e) {
     // サイレント失敗（エラー表示しない）
   }
+
+  // transfer_request の検知
+  try {
+    const treqRes = await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.transfer_request`, {
+      headers: SUPABASE_HEADERS
+    });
+    const treqRows = await treqRes.json();
+    if (treqRows.length > 0 && treqRows[0].value) {
+      const req = JSON.parse(treqRows[0].value);
+      if (req && req.amount > 0) {
+        // 資金移動エントリを自動登録
+        const date = req.date || getTodayStr();
+        const amount = parseInt(req.amount);
+        const desc = req.desc || '本社からの資金移動';
+        const _soT = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+        entries.push({
+          id: uid(), date, type:'in', status:'confirmed',
+          amount, partner:'秋田銀行（本社）', desc,
+          category:'資金移動', note:'', txType:'transfer', sortOrder:_soT
+        });
+        // transfer_request を削除
+        await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.transfer_request`, {
+          method: 'DELETE', headers: SUPABASE_HEADERS
+        });
+        await save();
+        renderAll();
+        showToast(`💜 資金移動 ${fmt(amount)} を自動登録しました`);
+        updateTransferNotice();
+      }
+    }
+  } catch(e) {
+    // サイレント失敗
+  }
 }
 
 async function load() {
@@ -1481,6 +1514,19 @@ function renderTable() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ===== TRANSFER REQUEST（他帳簿からの資金移動受信）=====
+// 送信側帳簿からこの関数を呼ぶか、Supabaseに直接書き込む
+// insert into ledger_meta(key,value) values('transfer_request','{"date":"2026-03-31","amount":50000,"desc":"本社からの資金移動"}')
+// on conflict(key) do update set value=excluded.value;
+async function sendTransferRequest(date, amount, desc) {
+  const val = JSON.stringify({ date, amount: parseInt(amount), desc: desc || '本社からの資金移動' });
+  await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta`, {
+    method: 'POST',
+    headers: { ...SUPABASE_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ key: 'transfer_request', value: val })
+  });
 }
 
 // ===== TRANSFER NOTICE =====
