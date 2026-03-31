@@ -1175,8 +1175,8 @@ function getBalanceAt(date) {
               && e.txType !== 'cash' && e.txType !== 'cash_io')
     .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
     .forEach(e => {
-      if (e.txType === 'withdraw') {
-        bal -= e.amount;       // 現金引出: 口座から出金
+      if (e.txType === 'withdraw' || e.txType === 'withdraw_bank') {
+        bal -= e.amount;
       } else {
         bal += e.type === 'in' ? e.amount : -e.amount;
       }
@@ -1192,8 +1192,8 @@ function getCashBalance() {
     .filter(e => e.status === 'confirmed' && e.date > baseDate)
     .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
     .forEach(e => {
-      if      (e.txType === 'withdraw') cash += e.amount;       // 現金引出: 現金が増える
-      else if (e.txType === 'cash')     cash -= e.amount;       // 現金出金: 現金が減る
+      if      (e.txType === 'withdraw' || e.txType === 'withdraw_cash') cash += e.amount;
+      else if (e.txType === 'cash')     cash -= e.amount;
       else if (e.txType === 'cash_io')  cash += e.type === 'in' ? e.amount : -e.amount; // 手当返金
     });
   return cash;
@@ -1409,7 +1409,7 @@ function renderTable() {
     }
     // 現金残高
     if (e.date > _cashBaseDate) {
-      if      (e.txType === 'withdraw') runCash = runCash + e.amount;
+      if      (e.txType === 'withdraw_cash') runCash = runCash + e.amount;
       else if (e.txType === 'cash')     runCash = runCash - e.amount;
       else if (e.txType === 'cash_io')  runCash = runCash + (e.type === 'in' ? e.amount : -e.amount);
     }
@@ -1450,11 +1450,13 @@ function renderTable() {
       cash:      '<span class="badge badge-cash-out">現金 出金</span>',
       cash_io_in: '<span class="badge badge-cash-io">手当返金</span>',
       cash_io_out:'<span class="badge badge-cash-io">手当返金</span>',
-      withdraw:  '<span class="badge badge-bank">現金引出</span>',
+      withdraw:  '<span class="badge badge-withdraw">現金引出</span>',
+      withdraw_bank: '<span class="badge badge-bank">現金引出（口座出金）</span>',
+      withdraw_cash: '<span class="badge badge-cash-out">現金引出（現金入金）</span>',
       transfer:  '<span class="badge badge-transfer">資金移動</span>',
     };
-    const txKey = e.txType === 'cash' ? 'cash' : e.txType === 'cash_io' ? (e.type==='in'?'cash_io_in':'cash_io_out') : e.txType === 'withdraw' ? 'withdraw' : e.txType === 'transfer' ? 'transfer' : (e.type === 'in' ? 'bank_in' : 'bank_out');
-    const rowCls = (e.txType === 'cash' || e.txType === 'cash_io') ? 'row-cash' : e.txType === 'withdraw' ? 'row-withdraw' : e.txType === 'transfer' ? 'row-transfer' : '';
+    const txKey = e.txType === 'cash' ? 'cash' : e.txType === 'cash_io' ? (e.type==='in'?'cash_io_in':'cash_io_out') : e.txType === 'withdraw_bank' ? 'withdraw_bank' : e.txType === 'withdraw_cash' ? 'withdraw_cash' : e.txType === 'withdraw' ? 'withdraw' : e.txType === 'transfer' ? 'transfer' : (e.type === 'in' ? 'bank_in' : 'bank_out');
+    const rowCls = (e.txType === 'cash' || e.txType === 'cash_io') ? 'row-cash' : (e.txType === 'withdraw' || e.txType === 'withdraw_bank') ? 'row-withdraw' : e.txType === 'withdraw_cash' ? 'row-cash' : e.txType === 'transfer' ? 'row-transfer' : '';
     return `<tr id="row_${e.id}" class="${rowCls}" draggable="true" data-id="${e.id}" data-date="${e.date}">
       <td class="drag-handle" title="ドラッグで並び替え">⠿</td>
       <td class="mono" style="white-space:nowrap;">${e.date}</td>
@@ -1702,17 +1704,16 @@ async function submitEntry(mode) {
     document.getElementById('cashCategory').value = '';
 
   } else if (mode === 'withdraw') {
-    // 現金引出：口座から出金 + 現金に加算
+    // 現金引出：口座出金エントリ + 現金入金エントリの2行登録
     var amount = parseInt(document.getElementById('withdrawAmount').value) || 0;
     var desc   = document.getElementById('withdrawDesc').value.trim() || '現金引出';
     if (amount <= 0) { showToast('引出金額を入力してください'); return; }
-    // 口座から出金エントリ
-    var _soWith = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
-    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw', sortOrder:_soWith });
-    // 現金残高を加算
-    var newCash = getCashBalance() + amount;
-    balAdjCash = { date, actual: newCash };
-    saveAdjCash();
+    var _soWith1 = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+    var _soWith2 = _soWith1 + 10;
+    // 行1: 口座から出金（口座残高が減る）
+    entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw_bank', sortOrder:_soWith1 });
+    // 行2: 現金に入金（現金残高が増える）
+    entries.push({ id: uid(), date, type:'in',  status:'confirmed', amount, partner:'ATM', desc, category:'現金', note:'', txType:'withdraw_cash', sortOrder:_soWith2 });
     document.getElementById('withdrawAmount').value = '';
     document.getElementById('withdrawDesc').value = '';
 
@@ -1831,7 +1832,7 @@ function confirmDelete(id) {
 }
 async function deleteEntry(id) {
   const target = entries.find(e => e.id === id);
-  if (target && target.txType === 'withdraw') {
+  if (target && (target.txType === 'withdraw' || target.txType === 'withdraw_cash')) {
     const newCash = getCashBalance() - target.amount;
     balAdjCash = { date: getTodayStr(), actual: newCash };
     saveAdjCash();
