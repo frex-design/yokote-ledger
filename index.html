@@ -1364,39 +1364,43 @@ function renderTable() {
 
   const balMap  = {};
   const cashMap = {};
+
+  // 全エントリを時系列・sortOrder順で1件ずつ処理
+  // 各エントリの「処理後」の残高をスナップショットとして記録
   let runBal  = _bankBaseVal;
   let runCash = _cashBaseVal;
 
-  // 全エントリを時系列・sortOrder順で処理
-  [...entries]
+  const sortedAll = [...entries]
     .filter(e => e.status === 'confirmed')
-    .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
-    .forEach(e => {
-      // ── 口座残高への影響 ──
-      // 基点日より後かつ現金系(cash/cash_io)以外
-      if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io') {
-        // bank(口座入出金)・transfer(資金移動=入金)・withdraw(現金引出=口座から出金)
-        if (e.txType === 'withdraw') {
-          runBal -= e.amount;          // 現金引出: 口座から出金
-        } else {
-          runBal += e.type === 'in' ? e.amount : -e.amount;
-        }
+    .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id));
+
+  for (let i = 0; i < sortedAll.length; i++) {
+    const e = sortedAll[i];
+
+    // ── 口座残高への影響（基点日より後のみ）──
+    if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io') {
+      if (e.txType === 'withdraw') {
+        runBal -= e.amount;   // 現金引出: 口座が減る
+      } else {
+        runBal += e.type === 'in' ? e.amount : -e.amount;
       }
-      // ── 現金残高への影響 ──
-      // 基点日より後かつ現金系のみ
-      if (e.date > _cashBaseDate) {
-        if (e.txType === 'withdraw') {
-          runCash += e.amount;         // 現金引出: 現金が増える
-        } else if (e.txType === 'cash') {
-          runCash -= e.amount;         // 現金出金: 現金が減る
-        } else if (e.txType === 'cash_io') {
-          runCash += e.type === 'in' ? e.amount : -e.amount; // 手当返金
-        }
+    }
+
+    // ── 現金残高への影響（基点日より後のみ）──
+    if (e.date > _cashBaseDate) {
+      if (e.txType === 'withdraw') {
+        runCash += e.amount;  // 現金引出: 現金が増える
+      } else if (e.txType === 'cash') {
+        runCash -= e.amount;  // 現金出金: 現金が減る
+      } else if (e.txType === 'cash_io') {
+        runCash += e.type === 'in' ? e.amount : -e.amount;
       }
-      // 全行にスナップショットを記録
-      balMap[e.id]  = runBal;
-      cashMap[e.id] = runCash;
-    });
+    }
+
+    // この1件処理後の残高を記録（各行固有の値）
+    balMap[String(e.id)]  = runBal;
+    cashMap[String(e.id)] = runCash;
+  }
 
   // Filter for display
   if (pfx) list = list.filter(e => e.date.startsWith(pfx));
@@ -1417,8 +1421,9 @@ function renderTable() {
   body.innerHTML = list.map(e => {
     if (editingId === e.id) return buildInlineEdit(e);
     // 各行ごとに balMap/cashMap から直接取得（全エントリで計算済み）
-    const bal     = balMap[e.id]  != null ? balMap[e.id]  : _bankBaseVal;
-    const cashVal = cashMap[e.id] != null ? cashMap[e.id] : _cashBaseVal;
+    const _eid    = String(e.id);
+    const bal     = balMap[_eid]  != null ? balMap[_eid]  : _bankBaseVal;
+    const cashVal = cashMap[_eid] != null ? cashMap[_eid] : _cashBaseVal;
     const balStr = fmtNum(bal);
     const balCls = bal >= 0 ? 'pos-val' : 'neg-val';
     const txBadge = {
