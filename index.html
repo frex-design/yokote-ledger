@@ -1423,6 +1423,8 @@ function renderSidebar() {
 
 // ===== TABLE =====
 function renderTable() {
+  console.log('renderTable: entries=', entries.length, 'filterYM=', filterYM, 'filterYMMode=', filterYMMode);
+  if (entries.length > 0) console.log('first entry:', JSON.stringify(entries[0]));
   const statusF = 'all'; // 区分フィルター廃止
   const typeF   = document.getElementById('filterType').value;
   const q       = document.getElementById('filterSearch').value.trim().toLowerCase();
