@@ -1160,7 +1160,7 @@ async function load() {
     });
     // ローカルも更新
     saveLocal();
-    console.log('Supabase load sample:', rows[0]); showSyncStatus('✓ 同期完了', true);
+showSyncStatus('✓ 同期完了', true);
   } catch(err) {
     console.warn('Supabase読込失敗（ローカルデータを使用）:', err);
     showSyncStatus('⚠ オフライン', false, true);
@@ -2441,6 +2441,8 @@ function showToast(msg) {
   setInterval(() => silentReload(), 30000);
   // 15秒ごとに資金移動リクエストをチェック（独立して実行）
   setInterval(() => checkTransferRequest(), 15000);
+  // 起動時にも即時チェック（3秒後：init完了を待つ）
+  setTimeout(() => checkTransferRequest(), 3000);
 
   // タブがアクティブになった時に即時チェック
   document.addEventListener('visibilitychange', () => {
