@@ -947,7 +947,7 @@ const ACCOUNT_ID       = 'akita_yokote';
 const INIT_BALANCE_BANK = 9712;   // 秋田銀行（横手）初期残高
 const INIT_BALANCE_CASH = 6404;   // 現金（横手）初期残高
 const INIT_DATE         = '2026-02-28'; // この日より後のエントリを計上
-const STORAGE_KEY       = 'fd_yokote_ledger_v1';
+const STORAGE_KEY       = 'fd_yokote_ledger_v2'; // v2: txType修正版
 const ADJ_KEY_BANK      = 'fd_yokote_adj_bank_v1';
 const ADJ_KEY_CASH      = 'fd_yokote_adj_cash_v1';
 const AUTH_PW      = 'frex2022';
@@ -1108,7 +1108,7 @@ async function load() {
     });
     // ローカルも更新
     saveLocal();
-    showSyncStatus('✓ 同期完了', true);
+    console.log('Supabase load sample:', rows[0]); showSyncStatus('✓ 同期完了', true);
   } catch(err) {
     console.warn('Supabase読込失敗（ローカルデータを使用）:', err);
     showSyncStatus('⚠ オフライン', false, true);
@@ -1343,10 +1343,6 @@ function renderSidebar() {
 
 // ===== TABLE =====
 function renderTable() {
-  // ===デバッグ===
-  console.log('entries count:', entries.length);
-  entries.slice(0,5).forEach(e => console.log('entry:', e.id, e.txType, e.type, e.amount, e.date));
-  // ===デバッグ終===
   const statusF = 'all'; // 区分フィルター廃止
   const typeF   = document.getElementById('filterType').value;
   const q       = document.getElementById('filterSearch').value.trim().toLowerCase();
@@ -1366,44 +1362,36 @@ function renderTable() {
   const _cashBaseDate = balAdjCash ? balAdjCash.date : INIT_DATE;
   const _cashBaseVal  = balAdjCash ? balAdjCash.actual : INIT_BALANCE_CASH;
 
-  // 全エントリを時系列・sortOrder順でスナップショット計算
+  // 全エントリを時系列順で処理して各エントリの残高を計算
+  // IDをキーにした単純オブジェクトではなくインデックス配列で管理
   const sortedAll = [...entries]
     .filter(e => e.status === 'confirmed')
     .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id));
 
-  // Map を使って各IDに独立した数値を記録（参照渡し問題を回避）
-  const balMap  = new Map();
-  const cashMap = new Map();
+  // 各エントリの残高を配列で保持 [{id, bal, cash}, ...]
+  const snapshots = [];
   let runBal  = _bankBaseVal;
   let runCash = _cashBaseVal;
 
   for (let i = 0; i < sortedAll.length; i++) {
     const e = sortedAll[i];
-
-    // ── 口座残高への影響（基点日より後のみ）──
+    // 口座残高
     if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io') {
-      if (e.txType === 'withdraw') {
-        runBal = runBal - e.amount;
-      } else {
-        runBal = runBal + (e.type === 'in' ? e.amount : -e.amount);
-      }
+      runBal = (e.txType === 'withdraw') ? runBal - e.amount
+             : runBal + (e.type === 'in' ? e.amount : -e.amount);
     }
-
-    // ── 現金残高への影響（基点日より後のみ）──
+    // 現金残高
     if (e.date > _cashBaseDate) {
-      if (e.txType === 'withdraw') {
-        runCash = runCash + e.amount;
-      } else if (e.txType === 'cash') {
-        runCash = runCash - e.amount;
-      } else if (e.txType === 'cash_io') {
-        runCash = runCash + (e.type === 'in' ? e.amount : -e.amount);
-      }
+      if      (e.txType === 'withdraw') runCash = runCash + e.amount;
+      else if (e.txType === 'cash')     runCash = runCash - e.amount;
+      else if (e.txType === 'cash_io')  runCash = runCash + (e.type === 'in' ? e.amount : -e.amount);
     }
-
-    // この行処理後の数値をプリミティブとして記録
-    balMap.set(String(e.id),  Number(runBal));
-    cashMap.set(String(e.id), Number(runCash));
+    snapshots.push({ id: e.id, bal: runBal, cash: runCash });
   }
+
+  // IDで高速検索できるよう変換
+  const snapMap = {};
+  snapshots.forEach(s => { snapMap[s.id] = { bal: s.bal, cash: s.cash }; });
 
   // Filter for display
   if (pfx) list = list.filter(e => e.date.startsWith(pfx));
@@ -1424,9 +1412,9 @@ function renderTable() {
   body.innerHTML = list.map(e => {
     if (editingId === e.id) return buildInlineEdit(e);
     // 各行ごとに balMap/cashMap から直接取得（全エントリで計算済み）
-    const _eid    = String(e.id);
-    const bal     = balMap.has(_eid)  ? balMap.get(_eid)  : _bankBaseVal;
-    const cashVal = cashMap.has(_eid) ? cashMap.get(_eid) : _cashBaseVal;
+    const _snap   = snapMap[e.id];
+    const bal     = _snap ? _snap.bal  : _bankBaseVal;
+    const cashVal = _snap ? _snap.cash : _cashBaseVal;
     const balStr = fmtNum(bal);
     const balCls = bal >= 0 ? 'pos-val' : 'neg-val';
     const txBadge = {
