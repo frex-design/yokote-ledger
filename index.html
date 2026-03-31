@@ -1083,6 +1083,13 @@ async function silentReload() {
         const date = req.date || getTodayStr();
         const amount = parseInt(req.amount);
         const desc = req.desc || '本社からの資金移動';
+        const today = getTodayStr();
+        const diffDays = Math.ceil((new Date(date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+        // 当日より未来（10日以内）の予告トーストを表示してreturn（まだ登録しない）
+        if (diffDays > 0 && diffDays <= 10) {
+          showToast('' + diffDays + '日後に資金移動（' + fmt(amount) + '）があります');
+          return;
+        }
         const _soT = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
         entries.push({
           id: uid(), date, type:'in', status:'confirmed',
@@ -1095,7 +1102,7 @@ async function silentReload() {
         });
         await save();
         renderAll();
-        showToast(`💜 資金移動 ${fmt(amount)} を自動登録しました`);
+        showToast(`資金移動 ${fmt(amount)} を自動登録しました`);
         updateTransferNotice();
       }
     }
