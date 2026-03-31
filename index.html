@@ -1074,14 +1074,16 @@ async function silentReload() {
 
 // transfer_request を独立してチェック（silentReloadとは別に毎回実行）
 async function checkTransferRequest() {
+  console.log("checkTransferRequest called, isSaving:", isSaving);
   if (isSaving) return;
   try {
     const treqRes = await fetch(`${SUPABASE_URL}/rest/v1/ledger_meta?key=eq.transfer_request`, {
       headers: SUPABASE_HEADERS
     });
-    if (!treqRes.ok) return;
+    if (!treqRes.ok) { console.log("treqRes not ok:", treqRes.status); return; }
     const treqRows = await treqRes.json();
-    if (!treqRows.length || !treqRows[0].value) return;
+    console.log("treqRows:", JSON.stringify(treqRows));
+    if (!treqRows.length || !treqRows[0].value) { console.log("no transfer_request found"); return; }
 
     const req = JSON.parse(treqRows[0].value);
     if (!req || !req.amount) return;
