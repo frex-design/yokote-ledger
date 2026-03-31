@@ -283,7 +283,7 @@
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
   input[type=number] { -moz-appearance:textfield; }
 
-  #toastMsg { position:fixed; bottom:24px; right:24px; background:#1a2236; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; z-index:300; opacity:0; transition:opacity 0.3s; pointer-events:none; }
+  #toastMsg { position:fixed; bottom:32px; right:32px; background:#1a2236; color:#fff; padding:12px 20px; border-radius:8px; font-size:13px; z-index:9999; opacity:0; transition:opacity 0.4s; pointer-events:none; min-width:200px; text-align:center; }
 
   @media print {
     .header, .sidebar, .chart-card, #formCard, .filter-bar, .btn, #toastMsg { display:none !important; }
@@ -1083,24 +1083,20 @@ async function checkTransferRequest() {
     });
     if (!treqRes.ok) { console.log("treqRes not ok:", treqRes.status); return; }
     const treqRows = await treqRes.json();
-    console.log("treqRows:", JSON.stringify(treqRows));
     if (!treqRows.length || !treqRows[0].value) { console.log("no transfer_request found"); return; }
 
     const req = JSON.parse(treqRows[0].value);
     if (!req || req.amount == null) return;
-    console.log("req parsed:", req);
 
     const date = req.date || getTodayStr();
     const amount = parseInt(req.amount);
     const desc = req.desc || '本社からの資金移動';
     const today = getTodayStr();
     const diffDays = Math.ceil((new Date(date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-    console.log('transfer_request: date=', date, 'today=', today, 'diffDays=', diffDays, 'amount=', amount);
 
     if (diffDays > 0 && diffDays <= 10) {
       // 未来の予告：トーストのみ（削除しない）
-      console.log('showing toast:', diffDays + '日後に資金移動');
-      showToast(diffDays + '日後に資金移動（' + fmt(amount) + '）があります');
+        showToast(diffDays + '日後に資金移動（' + fmt(amount) + '）があります');
       return;
     }
 
@@ -1426,7 +1422,6 @@ function renderSidebar() {
 
 // ===== TABLE =====
 function renderTable() {
-  console.log('renderTable: entries=', entries.length, 'filterYM=', filterYM, 'filterYMMode=', filterYMMode);
   if (entries.length > 0) console.log('first entry:', JSON.stringify(entries[0]));
   const statusF = 'all'; // 区分フィルター廃止
   const typeF   = document.getElementById('filterType').value;
@@ -1492,7 +1487,6 @@ function renderTable() {
     (e.note   || '').toLowerCase().includes(q)
   );
 
-  console.log('list after filter:', list.length, 'pfx:', pfx);
   const body = document.getElementById('tableBody');
   if (list.length === 0) {
     body.innerHTML = `<tr><td colspan="12" class="empty-state">この期間の取引データはありません</td></tr>`;
@@ -2434,10 +2428,28 @@ async function confirmCsvImport() {
 
 // ===== TOAST =====
 function showToast(msg) {
+  const now = Date.now();
+  // 同じメッセージを60秒以内に再表示しない
+  if (msg === _lastToastMsg && now - _lastToastTime < 60000) return;
+  _lastToastMsg = msg;
+  _lastToastTime = now;
   const t = document.getElementById('toastMsg');
-  t.textContent = msg; t.style.opacity = '1';
-  setTimeout(() => { t.style.opacity = '0'; }, 2500);
+  if (!t) return;
+  t.textContent = msg;
+  t.style.opacity = '0';
+  t.style.display = 'block';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { t.style.opacity = '1'; });
+  });
+  clearTimeout(t._toastTimer);
+  t._toastTimer = setTimeout(() => {
+    t.style.opacity = '0';
+    setTimeout(() => { t.style.display = 'none'; }, 400);
+  }, 3000);
 }
+
+let _lastToastMsg = '';
+let _lastToastTime = 0;
 
 // ===== START =====
 (function() {
