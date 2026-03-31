@@ -1402,17 +1402,21 @@ function renderTable() {
 
   for (let i = 0; i < sortedAll.length; i++) {
     const e = sortedAll[i];
-    // 口座残高
-    if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io') {
-      runBal = (e.txType === 'withdraw') ? runBal - e.amount
-             : runBal + (e.type === 'in' ? e.amount : -e.amount);
+    // 口座残高（withdraw_cashは口座に影響しない）
+    if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io' && e.txType !== 'withdraw_cash') {
+      if (e.txType === 'withdraw_bank') {
+        runBal = runBal - e.amount;  // 口座出金
+      } else {
+        runBal = runBal + (e.type === 'in' ? e.amount : -e.amount);
+      }
     }
-    // 現金残高
+    // 現金残高（withdraw_bankは現金に影響しない）
     if (e.date > _cashBaseDate) {
       if      (e.txType === 'withdraw_cash') runCash = runCash + e.amount;
-      else if (e.txType === 'cash')     runCash = runCash - e.amount;
-      else if (e.txType === 'cash_io')  runCash = runCash + (e.type === 'in' ? e.amount : -e.amount);
+      else if (e.txType === 'cash')          runCash = runCash - e.amount;
+      else if (e.txType === 'cash_io')       runCash = runCash + (e.type === 'in' ? e.amount : -e.amount);
     }
+    // withdraw_cash行の口座残高はwithdraw_bank行と同じ値（直前のrunBal）を使う
     snapshots.push({ id: e.id, bal: runBal, cash: runCash });
   }
 
@@ -1728,10 +1732,8 @@ async function submitEntry(mode) {
     document.getElementById('transferDesc').value = '';
   }
 
-  await save();
-  renderAll();
-  updateTransferNotice();
-  showToast('登録しました');
+  saveLocal(); renderAll(); updateTransferNotice(); showToast('登録しました');
+  save(); // バックグラウンドでSupabase保存
 }
 
 function startEdit(id) {
