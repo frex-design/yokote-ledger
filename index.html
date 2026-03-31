@@ -1087,7 +1087,8 @@ async function checkTransferRequest() {
     if (!treqRows.length || !treqRows[0].value) { console.log("no transfer_request found"); return; }
 
     const req = JSON.parse(treqRows[0].value);
-    if (!req || !req.amount) return;
+    if (!req || req.amount == null) return;
+    console.log("req parsed:", req);
 
     const date = req.date || getTodayStr();
     const amount = parseInt(req.amount);
@@ -1491,6 +1492,7 @@ function renderTable() {
     (e.note   || '').toLowerCase().includes(q)
   );
 
+  console.log('list after filter:', list.length, 'pfx:', pfx);
   const body = document.getElementById('tableBody');
   if (list.length === 0) {
     body.innerHTML = `<tr><td colspan="12" class="empty-state">この期間の取引データはありません</td></tr>`;
