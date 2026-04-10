@@ -415,7 +415,7 @@
       <div class="balance-hero">
         <div class="balance-hero-label">秋田銀行（横手）</div>
         <div class="balance-hero-amount" id="sideBalance">―</div>
-        <div class="balance-hero-sub">本日時点</div>
+        <div class="balance-hero-sub" id="sideBankSub">本日時点</div>
       </div>
       <div id="adj_bank_sub" style="font-size:11px; color:var(--text3); margin-top:6px;"></div>
     </div>
@@ -1447,6 +1447,8 @@ function previewSideBalance() {
   const cashBal = getCashBalance()    + previewCashDelta;
 
   document.getElementById('sideBalance').textContent = fmt(bal);
+  const sideBankSub = document.getElementById('sideBankSub');
+  if (sideBankSub) sideBankSub.textContent = getTodayStr() + ' 時点';
   const cashEl = document.getElementById('sideCashBalance');
   if (cashEl) cashEl.textContent = fmt(cashBal);
   const _cashSubA = document.getElementById('sideCashSub');
