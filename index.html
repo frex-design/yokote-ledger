@@ -405,7 +405,7 @@
       <div class="sidebar-section-title">手元資金合計</div>
       <div class="balance-hero" style="background:linear-gradient(135deg,rgba(230,126,34,0.14),rgba(230,126,34,0.04)); border-color:var(--accent-border);">
         <div class="balance-hero-amount" id="sideTotalBalance" style="font-size:20px;">―</div>
-        <div class="balance-hero-sub">本日時点</div>
+        <div class="balance-hero-sub" id="sideTotalSub">本日時点</div>
       </div>
     </div>
 
@@ -1279,11 +1279,11 @@ function getBalanceAt(date) {
   let bal = base;
   entries
     .filter(e => e.status === 'confirmed' && e.date > baseDate && e.date <= date
-              && e.txType !== 'cash' && e.txType !== 'cash_io')
+              && e.txType !== 'cash' && e.txType !== 'cash_io' && e.txType !== 'withdraw_cash')
     .sort((a,b) => a.date.localeCompare(b.date) || (a.sortOrder||a.id) - (b.sortOrder||b.id))
     .forEach(e => {
-      if (e.txType === 'withdraw' || e.txType === 'withdraw_bank') {
-        bal -= e.amount;
+      if (e.txType === 'withdraw_bank') {
+        bal -= e.amount;   // 現金引出：口座が減る
       } else {
         bal += e.type === 'in' ? e.amount : -e.amount;
       }
@@ -1462,6 +1462,8 @@ function renderSidebar() {
   const today = getTodayStr();
   const bal = getBalanceAt(today);
   document.getElementById('sideBalance').textContent = fmt(bal);
+  const _bSub2 = document.getElementById('sideBankSub'); if(_bSub2) _bSub2.textContent = getTodayStr() + ' 時点';
+  const _tSub2 = document.getElementById('sideTotalSub'); if(_tSub2) _tSub2.textContent = getTodayStr() + ' 時点';
 
   const cash = getCashBalance();
   const cashEl = document.getElementById('sideCashBalance');
@@ -1522,7 +1524,7 @@ function renderTable() {
     const e = sortedAll[i];
     // 口座残高（withdraw_cashは口座に影響しない）
     if (e.date > _bankBaseDate && e.txType !== 'cash' && e.txType !== 'cash_io' && e.txType !== 'withdraw_cash') {
-      if (e.txType === 'withdraw_bank') {
+      if (e.txType === 'withdraw_bank' || e.txType === 'withdraw') {
         runBal = runBal - e.amount;  // 口座出金
       } else {
         runBal = runBal + (e.type === 'in' ? e.amount : -e.amount);
