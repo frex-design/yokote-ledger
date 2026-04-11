@@ -1635,10 +1635,11 @@ function updateTransferNotice() {
     .sort((a,b) => a.ms - b.ms);
 
   // NEWバッジは登録日から1週間以内
+  const todayMs = new Date(today + 'T00:00:00').getTime();
   const hasNew = entries
     .filter(e => e.txType === 'transfer' && e.status === 'confirmed')
     .map(e => ({ ...e, ms: new Date(e.date + 'T00:00:00').getTime() }))
-    .some(e => Math.abs(now - e.ms) <= ONE_WEEK_MS);
+    .some(e => e.ms >= todayMs && e.ms - todayMs <= ONE_WEEK_MS);
 
   badge.style.display = hasNew ? 'block' : 'none';
 
