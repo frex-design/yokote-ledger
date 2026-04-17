@@ -1816,11 +1816,6 @@ async function submitEntry(mode) {
     const cat    = document.getElementById('entryCategory').value;
     const note   = document.getElementById('entryNote').value.trim();
     if (amount <= 0) { showToast('金額を入力してください'); return; }
-    // 現金残高を増減
-    const delta = type === 'in' ? amount : -amount;
-    const newCash = getCashBalance() + delta;
-    balAdjCash = { date, actual: newCash };
-    saveAdjCash();
     if (editingId !== null) {
       const idx = entries.findIndex(e => e.id === editingId);
       entries[idx] = { id: editingId, date, type, status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash_io' };
@@ -1845,10 +1840,6 @@ async function submitEntry(mode) {
     if (amount <= 0) { showToast('金額を入力してください'); return; }
     var _soCash = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
     entries.push({ id: uid(), date, type:'out', status:'confirmed', amount, partner, desc, category: cat, note, txType:'cash', sortOrder:_soCash });
-    // 現金残高を減算
-    var newCash = getCashBalance() - amount;
-    balAdjCash = { date, actual: newCash };
-    saveAdjCash();
     document.getElementById('cashAmount').value = '';
     document.getElementById('cashPartner').value = '';
     document.getElementById('cashDesc').value = '';
@@ -1982,21 +1973,7 @@ function confirmDelete(id) {
 }
 async function deleteEntry(id) {
   const target = entries.find(e => e.id === id);
-  if (target && (target.txType === 'withdraw' || target.txType === 'withdraw_cash')) {
-    const newCash = getCashBalance() - target.amount;
-    balAdjCash = { date: getTodayStr(), actual: newCash };
-    saveAdjCash();
-  }
-  if (target && (target.txType === 'cash' || (target.txType === 'cash_io' && target.type === 'out'))) {
-    const newCash = getCashBalance() + target.amount;
-    balAdjCash = { date: getTodayStr(), actual: newCash };
-    saveAdjCash();
-  }
-  if (target && target.txType === 'cash_io' && target.type === 'in') {
-    const newCash = getCashBalance() - target.amount;
-    balAdjCash = { date: getTodayStr(), actual: newCash };
-    saveAdjCash();
-  }
+  // balAdjCashはエントリから積み上げ計算するため手動更新不要
   entries = entries.filter(e => e.id !== id);
   if (editingId === id) cancelEdit();
   await save(); renderAll(); showToast('削除しました');
