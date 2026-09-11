@@ -1619,8 +1619,8 @@ function renderTable() {
       cash_io_in: '<span class="badge badge-cash-io">手当返金</span>',
       cash_io_out:'<span class="badge badge-cash-io">手当返金</span>',
       withdraw:  '<span class="badge badge-withdraw">現金引出</span>',
-      withdraw_bank: '<span class="badge badge-bank">現金引出（口座出金）</span>',
-      withdraw_cash: '<span class="badge badge-cash-out">現金引出（現金入金）</span>',
+      withdraw_bank: '<span class="badge badge-bank">ATM 出金</span>',
+      withdraw_cash: '<span class="badge badge-cash-out">現金 入金</span>',
       transfer:  '<span class="badge badge-transfer">資金移動</span>',
     };
     const txKey = e.txType === 'cash' ? 'cash' : e.txType === 'cash_io' ? (e.type==='in'?'cash_io_in':'cash_io_out') : e.txType === 'withdraw_bank' ? 'withdraw_bank' : e.txType === 'withdraw_cash' ? 'withdraw_cash' : e.txType === 'withdraw' ? 'withdraw' : e.txType === 'transfer' ? 'transfer' : (e.type === 'in' ? 'bank_in' : 'bank_out');
