@@ -179,6 +179,7 @@
   .mode-tab.active-cash    { color:var(--green);  border-bottom-color:var(--green);  font-weight:500; }
   .mode-tab.active-withdraw{ color:var(--accent); border-bottom-color:var(--accent); font-weight:500; }
   .mode-tab.active-transfer{ color:#7c3aed;       border-bottom-color:#7c3aed;       font-weight:500; }
+  .mode-tab.active-income  { color:#d97706;       border-bottom-color:#d97706;       font-weight:500; }
   .form-panel { display:none; }
   .form-panel.active { display:block; }
 
@@ -452,6 +453,7 @@
           <button class="mode-tab" id="modeTab_transfer" onclick="switchFormMode('transfer')">↔️ 資金移動（本社→横手）</button>
           <span class="new-badge" id="transferNewBadge" style="display:none;">NEW</span>
         </div>
+        <button class="mode-tab" id="modeTab_income" onclick="switchFormMode('income')">💰 入金（受取利息）</button>
       </div>
 
       <!-- ① 現金 入出金 -->
@@ -612,6 +614,41 @@
           </div>
           <div class="form-group" style="align-self:end;">
             <button class="btn btn-sm" style="background:#7c3aed;color:#fff;" onclick="submitEntry('transfer')">登録</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑤ 入金（受取利息） -->
+      <div class="form-panel" id="formPanel_income">
+        <div style="background:rgba(217,119,6,0.06); border:1px solid rgba(217,119,6,0.2); border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:12px; color:var(--text2);">
+          💰 秋田銀行（横手）口座への入金を登録します。勘定科目は「受取利息」で計上され、口座残高が増加します。
+        </div>
+        <div style="display:grid; grid-template-columns:160px minmax(0,0.5fr) 1fr auto; gap:8px; align-items:end;">
+          <div class="form-group" style="position:relative;">
+            <label class="form-label">日付</label>
+            <div style="display:flex; align-items:center; border:1px solid var(--border); border-radius:5px; overflow:hidden; background:var(--bg3);">
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(-1)">&#8249;</button>
+              <div id="entryDateDisplay5" onclick="event.stopPropagation(); toggleCal('entry', this)"
+                style="flex:1; text-align:center; padding:7px 4px; font-size:13px; color:var(--text); cursor:pointer; user-select:none; white-space:nowrap;"></div>
+              <button type="button" class="filter-nav-btn" onclick="shiftEntryDate(1)">&#8250;</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">金額（円）</label>
+            <input type="number" class="form-input" id="incomeAmount" placeholder="0" min="0" oninput="previewSideBalance()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">摘要（任意）</label>
+            <input type="text" class="form-input" id="incomeDesc" placeholder="例：普通預金利息">
+          </div>
+          <div class="form-group" style="align-self:end;">
+            <button class="btn btn-sm" style="background:#d97706;color:#fff;" onclick="submitEntry('income')">登録</button>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px;">
+          <div class="form-group">
+            <label class="form-label">勘定科目</label>
+            <input type="text" class="form-input" value="受取利息" readonly style="background:var(--bg3); color:var(--text3); cursor:not-allowed;">
           </div>
         </div>
       </div>
@@ -939,7 +976,8 @@
             <option>通信費</option>
             <option>消耗品</option>
             <option>手数料</option>
-              <option>その他</option>
+            <option>その他</option>
+            <option>受取利息</option>
           </select>
         </div>
         <div class="form-group">
@@ -1438,6 +1476,8 @@ function previewSideBalance() {
     previewBankDelta = -a; previewCashDelta = a;
   } else if (mode === 'transfer') {
     previewBankDelta = inputAmount('transferAmount');
+  } else if (mode === 'income') {
+    previewBankDelta = inputAmount('incomeAmount');
   } else if (mode === 'cash') {
     previewCashDelta = -inputAmount('cashAmount');
   } else if (mode === 'bank') {
@@ -1778,7 +1818,7 @@ function updateDateDisplay(key) {
   const dt = new Date(y,m-1,d);
   const days = ['日','月','火','水','木','金','土'];
   const label = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')} (${days[dt.getDay()]})`;
-  ['entryDateDisplay','entryDateDisplay2','entryDateDisplay3','entryDateDisplay4'].forEach(id => {
+  ['entryDateDisplay','entryDateDisplay2','entryDateDisplay3','entryDateDisplay4','entryDateDisplay5'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = label;
   });
@@ -1794,7 +1834,7 @@ function shiftEntryDate(n) {
 let currentMode = 'cash';
 function switchFormMode(mode) {
   currentMode = mode;
-  ['bank','cash','withdraw','transfer'].forEach(m => {
+  ['bank','cash','withdraw','transfer','income'].forEach(m => {
     const tab = document.getElementById('modeTab_' + m);
     const panel = document.getElementById('formPanel_' + m);
     if (tab) tab.className = 'mode-tab' + (m === mode ? ' active-' + m : '');
@@ -1869,6 +1909,16 @@ async function submitEntry(mode) {
     entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'秋田銀行（本社）', desc, category:'資金移動', note:'', txType:'transfer', sortOrder:_soTrans });
     document.getElementById('transferAmount').value = '';
     document.getElementById('transferDesc').value = '';
+
+  } else if (mode === 'income') {
+    // 入金（受取利息）：秋田銀行（横手）口座に入金（txType:'bank'＝口座残高に加算・現金には影響しない）
+    var amount = parseInt(document.getElementById('incomeAmount').value) || 0;
+    var desc   = document.getElementById('incomeDesc').value.trim();
+    if (amount <= 0) { showToast('金額を入力してください'); return; }
+    var _soInc = Math.max(0, ...entries.filter(x=>x.date===date).map(x=>x.sortOrder||0)) + 10;
+    entries.push({ id: uid(), date, type:'in', status:'confirmed', amount, partner:'', desc, category:'受取利息', note:'', txType:'bank', sortOrder:_soInc });
+    document.getElementById('incomeAmount').value = '';
+    document.getElementById('incomeDesc').value = '';
   }
 
   saveLocal(); renderAll(); updateTransferNotice(); showToast('登録しました');
